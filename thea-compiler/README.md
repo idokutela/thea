@@ -15,12 +15,13 @@ Out
 ```js
 'use strict'
 
-var ρ = require('thea');
+var TheaDom = require('thea/types/TheaDom'),
+    TheaKeyedChildren = require('thea/types/KeyedChildren');
 
 var profile = [
-  ρ.δ('div'), { children: [
-    [ρ.δ('img'), { src: "avatar.png", class: "profile" }],
-    [ρ.δ('h3'), { children: [[ρ.ε, [user.firstName, user.lastName].join(' ')]] }]
+  TheaDom('div'), { children: [
+    [TheaDom('img'), { src: "avatar.png", class: "profile" }],
+    [TheaDom('h3'), { children: [[TheaKeyedChildren, [user.firstName, user.lastName].join(' ')]] }]
   ]}
 ]
 ```
@@ -40,9 +41,9 @@ Out
 'use strict'
 
 var profile = [
-  T.δ('div'), { children: [
-    [T.δ('img'), { src: "avatar.png", class: "profile" }],
-    [T.δ('h3'), { children: [[T.ε, [user.firstName, user.lastName].join(' ')]] }]
+  T.TheaDom('div'), { children: [
+    [T.TheaDom('img'), { src: "avatar.png", class: "profile" }],
+    [T.TheaDom('h3'), { children: [[T.TheaKeyedChildren, [user.firstName, user.lastName].join(' ')]] }]
   ]}
 ]
 ```
