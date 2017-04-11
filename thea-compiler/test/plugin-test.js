@@ -1,6 +1,6 @@
 import { transform } from 'babel-core';
 
-import { thea, text, dom, comment, expression } from '../src/constants';
+import { thea, text, dom, comment } from '../src/constants';
 import plugin from '../src/plugin';
 
 describe('plugin tests', function () {
@@ -93,7 +93,7 @@ a = [Mary.Elisabeth, _extends({ x: 12, children: [[${text}, 'Test me! '], [${dom
     code.should.equal(expectedCode);
   });
 
-  it('should correctly process comments', function () {
+  it('should only import that which is needed', function () {
     const babelOptions = {
       babelrc: false,
       plugins: [plugin],
@@ -105,5 +105,48 @@ a = [Mary.Elisabeth, _extends({ x: 12, children: [[${text}, 'Test me! '], [${dom
 [${comment}, ["Hello ", fool]];`;
 
     code.should.equal(expectedCode);
+  });
+
+  it('should do everything together well', function () {
+    const babelOptions = {
+      babelrc: false,
+      plugins: [plugin],
+    };
+
+    const code = `
+(
+<view>
+  <comment>Copyright (c) {(new Date()).getFullYear()} Manufacturably</comment>
+  <h1 class="Major">Index of articles</h1>
+  <each item="article" of={attrs.articles} keyedBy={(a, i) => a.id}>
+    <h2 id={article.id}>{article.title}</h2>
+    <h3>Published {article.date}</h3>
+    <branch>
+      <if test={article.isLong}>
+        Long article:
+        <LongForm {...article} />
+      </if>
+      <default>
+        Short article:
+        <ShortForm content={article.content} url={article.url} />
+      </default>
+    </branch>
+    Thanks for coming!
+  </each>
+</view>
+)`;
+    const expectedCode = `var TheaText = require("thea/types/TheaText"),
+    TheaExpression = require("thea/types/TheaExpression"),
+    TheaComment = require("thea/types/TheaComment"),
+    TheaView = require("thea/types/TheaView"),
+    TheaDOM = require("thea/types/TheaDOM"),
+    TheaKeyedChildren = require("thea/types/TheaKeyedChildren");
+
+[TheaView, [[TheaComment, ["Copyright (c) ", new Date().getFullYear(), " Manufacturably"]], [TheaDOM("h1"), { "class": "Major", children: [[TheaText, "Index of articles"]]
+}], [TheaKeyedChildren, [...attrs.articles].map((_item, _key) => ((article, key) => [TheaView, [[TheaDOM("h2"), { id: article.id, children: [[TheaExpression, article.title]]
+}], [TheaDOM("h3"), {
+  children: [[TheaText, "Published "], [TheaExpression, article.date]]
+}], [TheaKeyedChildren, article.isLong ? [TheaView, [[TheaText, "Long article:"], [LongForm, Object.assign({}, article)]], 0] : [TheaView, [[TheaText, "Short article:"], [ShortForm, { content: article.content, url: article.url }]], 1]], [TheaText, "Thanks for coming!"]], key])(_item, ((a, i) => a.id)(_item, _key)))]]];`;
+    transform(code, babelOptions).code.should.equal(expectedCode);
   });
 });
