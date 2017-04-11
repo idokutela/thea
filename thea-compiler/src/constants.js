@@ -1,0 +1,9 @@
+export const thea = 'ρ'; // 'render'
+export const text = 'TheaText'; // 'text node'
+export const expression = 'TheaExpression'; // 'expression'
+export const dom = 'TheaDOM'; // 'dom'
+export const comment = 'TheaComment'; // 'comment'
+export const view = 'TheaView'; // 'view'
+export const keyedIter = 'TheaKeyedChildren'; // 'keyed iteration'
+export const unkeyedIter = 'TheaUnkeyedChildren'; // 'unkeyed iteration'
+export const map = 'TheaMap';
