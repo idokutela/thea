@@ -17,19 +17,30 @@ an object that encapsulates all of the current component state.
 BLA
 
 ## Built in components
-Thea provides a small set of built in components. All ignore the context:
-
- - `TheaText` : renders a text node - takes a string as its attr. Does not accept children.
-   It always escapes its content.
- - `TheaComment`: renders an HTML comment. May only have text as children. Content is escaped.
- - `TheaView`: renders a fixed list of components without a containing DOM element.
- - `TheaDOM(tag:string)` : renders a DOM element. The attrs are any attributes of that tag,
-   along with a 'children' attribute that must be an array of components. Attribute values are escaped!
- - `TheaKeyedChildren`: renders a keyed array of children. The attr is an array of keyed vdom elements.
- - `TheaUnkeyedChildren`: renders an unkeyed array of children. The attr is an array of vdom elements.
-
+Thea provides a small set of built in components. All ignore the context.
 They are exposed by importing `thea/types`, and may also be imported individually
 under `thea/types/component`.
+
+
+### `TheaText`
+Renders a text node - takes a string as its `attrs`. Does not accept children. It always escapes its content.
+
+###`TheaComment`
+Renders an HTML comment. May only have text as children. Content is escaped.
+
+### `TheaView`
+Renders a fixed list of components without a containing DOM element.
+
+### `TheaDOM(tag:string)`
+Renders a DOM element. The `attrs` are any attributes of that tag,
+along with a 'children' attribute that must be an array of components. Attribute values are escaped!
+
+### `TheaKeyedChildren`
+Renders a keyed array of children. The `attrs` is an array of keyed vdom elements.
+
+### `TheaUnkeyedChildren`
+Renders an unkeyed array of children. The `attrs` is an array of vdom elements.
+
 
 ## JSX and built in components
 The easiest way to write VDOM is with JSX. The Babel plugin
@@ -59,36 +70,45 @@ const x = [TheaDOM('div'), { children: [[TheaText, 'Hello '], [TheaKeyedChildren
 ```
 
 The JSX transpiler interprets a few elements specially:
- - `<view>` -> `TheaView`,
- - `<comment>` -> `TheaComment`,
- - `<each>`: Loops through an iterable, providing a copy of its children for each item.
-   Has attributes
-    - `of:iterable` - the iterable to loop through,
-    - `item:string` - the name of the identifier that refers to the current item. Defaults to `item`.
-    - `keyedBy:(item, iterCount) -> expression` - computes the key for the item. Defaults to the iteration count.
-      Must be unique for each item in the iterable!
 
-   Example:
-   ```js
-   <each item='article' of={articles} keyedBy={article => article.id}>
-     <Article {...article} />
-   </each>
-   ```
- - `<branch>/<if>/<default>`: `<branch>` renders different branches depending on which
-   condition is satisfied. Conditions are specified by `<if test={expression}>` and
-   are evaluated in order. The first to be satisfied is taken. If a `<default>` child
-   is present, it is taken if no condition is satisfied. A `<default>` must be the last
-   child if present.
+### `<view>`
+Becomes `TheaView`.
+### `<comment>`
+Becomes `TheaComment`.
+### `<each>`
+Loops through an iterable, providing a copy of its children for each item.
 
-   Example:
-   ```js
-   <branch>
-    <if test={showMercy}>👍</if>
-    <default>👎</default>
-   </branch>
-   ```
+Has attributes
+  - `of:iterable` - the iterable to loop through,
+  - `item:string` - the name of the identifier that refers to the current item. Defaults to `item`.
+  - `keyedBy:(item, iterCount) -> expression` - computes the key for the item. Defaults to the iteration count.
+     Must be unique for each item in the iterable!
 
-   If no condition is satisfied, a comment placeholder is rendered.
+Example:
+
+```js
+<each item='article' of={articles} keyedBy={article => article.id}>
+  <Article {...article} />
+</each>
+```
+
+### `<branch>/<if>/<default>`
+`<branch>` renders different branches depending on which
+condition is satisfied. Conditions are specified by `<if test={expression}>` and
+are evaluated in order. The first to be satisfied is taken. If a `<default>` child
+is present, it is taken if no condition is satisfied. A `<default>` must be the last
+child if present.
+
+Example:
+
+```js
+<branch>
+  <if test={showMercy}>👍</if>
+  <default>👎</default>
+</branch>
+```
+
+If no condition is satisfied, a comment placeholder is rendered.
 
 ### One last differences to React JSX
 Thea doesn’t hold truck with the `className` sillyness. The class
