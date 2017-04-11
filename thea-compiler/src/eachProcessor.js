@@ -1,20 +1,30 @@
 import * as t from 'babel-types';
 
 import makeNode, { TH } from './makeNode';
-import { view, map, keyedIter, unkeyedIter } from './constants';
+import { keyedIter, unkeyedIter } from './constants';
 import extractKey from './extractKey';
 import extractChildren from './extractChildren';
 import getAttributes from './getAttributes';
+import makeChildren from './makeChildren';
 
+function makeMap(iterable, mapper) {
+  return t.callExpression(
+    t.memberExpression(t.arrayExpression([t.spreadElement(iterable)]), t.identifier('map')),
+    [mapper],
+  );
+}
 
-function makeKeyedNode({
+function makeKeyedNode(path, state, pragma, {
   children,
   of,
   item = t.identifier('item'),
   keyedBy = t.identifier('key'),
-}, pragma, path) {
+}) {
   const thea = TH(pragma);
   const key = t.identifier('key');
+  const itemId = path.scope.generateUidIdentifier('item');
+  const keyId = path.scope.generateUidIdentifier('key');
+
   if (of === undefined) {
     throw path.buildCodeFrameError('An “of” iterable must be specified for “each”.');
   }
@@ -22,51 +32,37 @@ function makeKeyedNode({
     throw path.buildCodeFrameError('No children for “each”.');
   }
 
-  const child = makeNode(thea(view), t.arrayExpression(children), key);
+  const child = makeChildren(path, state, children, pragma, key);
 
-  const innerF = t.functionExpression(null, [
-    item, key,
-  ], t.blockStatement([t.returnStatement(child)]));
+  const innerF = t.arrowFunctionExpression([item, key], child);
 
   const computedChild = t.callExpression(
-    innerF, [item, keyedBy]);
+    innerF, [itemId, t.callExpression(keyedBy, [itemId, keyId])]);
 
-  const mapFunction = t.arrowFunctionExpression([item, key], computedChild);
+  const mapFunction = t.arrowFunctionExpression([itemId, keyId], computedChild);
 
-  const mappedChildren = t.callExpression(thea(map), [of, mapFunction]);
-
-  const args = mappedChildren;
+  const args = makeMap(of, mapFunction);
 
   return makeNode(thea(keyedIter), args, extractKey(path));
 }
 
-function makeUnkeyedNode({
+function makeUnkeyedNode(path, state, pragma, {
   children,
   of,
   item = t.identifier('item'),
-}, pragma, path) {
+}) {
   const thea = TH(pragma);
   if (of === undefined) {
     throw path.buildCodeFrameError('An “of” iterable must be specified for “each”.');
   }
-  let child;
-  if (children.length === 0) {
-    throw path.buildCodeFrameError('No children for “each”.');
-  }
-  if (children.length === 1) {
-    child = children[0];
-  } else {
-    const attrsObject = t.arrayExpression(children);
-    child = makeNode(thea(view), attrsObject);
-  }
 
-  const computedChild = t.functionExpression(null, [
+  const child = makeChildren(path, state, children, pragma);
+
+  const computedChild = t.arrowFunctionExpression([
     item, t.identifier('key'),
-  ], t.blockStatement([t.returnStatement(child)]));
+  ], child);
 
-  const mappedChildren = t.callExpression(thea(map), [of, computedChild]);
-
-  const args = mappedChildren;
+  const args = makeMap(of, computedChild);
 
   const node = makeNode(thea(unkeyedIter), args, extractKey(path));
   return node;
@@ -74,16 +70,16 @@ function makeUnkeyedNode({
 
 const whitelist = new Map([['of', new Set(['expression'])], ['keyedBy', new Set(['expression'])], ['item', new Set(['string'])]]);
 
-export default opts => (path, file) => {
+export default (path, state, opts) => {
   if (path.node.openingElement.name.name !== 'each') return path;
   const { pragma } = opts;
   const attrs = getAttributes(path, whitelist);
   attrs.item = attrs.item ? t.inherits(t.identifier(attrs.item.value), attrs.item) : attrs.item;
-  extractChildren(path, opts, attrs);
+  extractChildren(path, state, pragma, attrs);
   if (attrs.keyedBy) {
-    if (!file.get('thea_keyed')) file.set('thea_keyed', () => true);
-    return makeKeyedNode(attrs, pragma, path);
+    if (!state.get(keyedIter)) state.set(keyedIter, () => true);
+    return makeKeyedNode(path, state, pragma, attrs, pragma);
   }
-  if (!file.get('thea_unkeyed')) file.set('thea_unkeyed', () => true);
-  return makeUnkeyedNode(attrs, pragma, path);
+  if (!state.get(unkeyedIter)) state.set(unkeyedIter, () => true);
+  return makeUnkeyedNode(path, state, pragma, attrs, pragma);
 };

@@ -4,10 +4,10 @@ import branchProcessor from '../src/branchProcessor';
 import { keyedIter, text } from '../src/constants';
 
 describe('branchProcessor tests', function () {
-  const attributesPlugin = () => () => ({
+  const plugin = () => ({
     visitor: {
       JSXElement: (path, file) => path.replaceWith(
-        branchProcessor({})(path, file),
+        branchProcessor(path, file, {}),
       ),
     },
     inherits: jsxSyntax,
@@ -24,7 +24,7 @@ describe('branchProcessor tests', function () {
     babelOptions = {
       presets: ['es2015'],
       babelrc: false,
-      plugins: [attributesPlugin()],
+      plugins: [plugin],
     };
   });
 
@@ -40,7 +40,7 @@ describe('branchProcessor tests', function () {
     babelOptions = {
       presets: ['es2015'],
       babelrc: false,
-      plugins: [attributesPlugin()],
+      plugins: [plugin()],
     };
   });
 
@@ -75,5 +75,31 @@ describe('branchProcessor tests', function () {
 `;
     const expectedCode = `[${keyedIter}, monge.ampère ? [${text}, "Hello", 0] : [TheaView, [<div>Melt</div>, <p>What?</p>], 1]];`;
     test(code, expectedCode);
+  });
+
+  it('should flag that a branch has been seen', function () {
+    let value = false;
+    const checkKey = key => (path, state) => {
+      value = state.get(key)();
+    };
+    const checkPlugin = () => ({
+      visitor: {
+        JSXElement: (path, file) => path.replaceWith(
+          branchProcessor(path, file, {}),
+        ),
+        Program: {
+          exit: checkKey(keyedIter),
+        },
+      },
+      inherits: jsxSyntax,
+    });
+
+    babelOptions.plugins = [checkPlugin];
+    transform(`
+<branch>
+  <if test={monge.ampère}>Hello</if>
+</branch>
+`, babelOptions);
+    value.should.equal(true);
   });
 });

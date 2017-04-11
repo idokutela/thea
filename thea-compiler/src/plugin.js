@@ -3,7 +3,9 @@ import builder from './elementTxBuilder';
 import { dom, comment, view, text, keyedIter, unkeyedIter, expression } from './constants';
 import { TH } from './makeNode';
 import branchProcessor from './branchProcessor';
+import commentProcessor from './commentProcessor';
 import eachProcessor from './eachProcessor';
+import viewProcessor from './viewProcessor';
 
 const componentPath = 'thea/types';
 
@@ -27,12 +29,10 @@ export default function ({ types: t }) {
       const name = state.typeName;
       switch (name) {
         case 'comment':
-          state.type = th(comment);
-          if (!file.get('thea_comment')) file.set('thea_comment', () => true);
+          state.processNode = commentProcessor;
           break;
         case 'view':
-          state.type = th(view);
-          if (!file.get('thea_view')) file.set('thea_view', () => true);
+          state.processNode = viewProcessor;
           break;
         case 'branch':
           state.processNode = branchProcessor;
@@ -43,14 +43,14 @@ export default function ({ types: t }) {
         default:
           if (t.react.isCompatTag(name)) {
             state.type = t.callExpression(th(dom), [t.stringLiteral(name)]); // eslint-disable-line
-            if (!file.get('thea_dom')) file.set('thea_dom', () => true);
+            if (!file.get(dom)) file.set(dom, () => true);
           }
 
           if (hasTextNode(state.node.children)) {
-            if (!file.get('thea_text')) file.set('thea_text', () => true);
+            if (!file.get(text)) file.set(text, () => true);
           }
           if (hasExpression(state.node.children)) {
-            if (!file.get('thea_expression')) file.set('thea_expression', () => true);
+            if (!file.get(expression)) file.set(expression, () => true);
           }
       }
 
@@ -85,13 +85,13 @@ export default function ({ types: t }) {
       const id = makeId(t);
 
       const shouldImport = state.get('import');
-      const hasText = state.get('thea_text');
-      const hasDOM = state.get('thea_dom');
-      const hasExp = state.get('thea_expression');
-      const hasComment = state.get('thea_comment');
-      const hasKeyed = state.get('thea_keyed');
-      const hasUnkeyed = state.get('thea_unkeyed');
-      const hasView = state.get('thea_view');
+      const hasText = state.get(text);
+      const hasDOM = state.get(dom);
+      const hasExp = state.get(expression);
+      const hasComment = state.get(comment);
+      const hasKeyed = state.get(keyedIter);
+      const hasUnkeyed = state.get(unkeyedIter);
+      const hasView = state.get(view);
       const assignments = [];
 
       if (shouldImport && shouldImport()) {
@@ -102,7 +102,7 @@ export default function ({ types: t }) {
           if (hasText && hasText()) {
             assignments.push(ass(id(text), req(makeSubPath(text))));
           }
-          if (hasExp && hasExp()) {
+          if (keyedIter !== expression && hasExp && hasExp()) {
             assignments.push(ass(id(expression), req(makeSubPath(expression))));
           }
           if (hasComment && hasComment()) {

@@ -15,7 +15,7 @@ export default (opts) => {
     const typeName = t.isIdentifier(type) ? type.name : t.isStringLiteral(type) ? type.value : undefined; // eslint-disable-line
     const state = { typeName, type, node: path.node };
     opts.pre && opts.pre(state, file); // eslint-disable-line
-    if (state.processNode) return state.processNode(path, file);
+    if (state.processNode) return state.processNode(path, file, opts);
     const helper = file.opts.useHelper ? file.addHelper('extends') : undefined;
     const attrs = extractAttributes({ pragma: state.pragma, helper });
     state.attributes = attrs(path);
