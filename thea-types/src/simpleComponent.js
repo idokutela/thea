@@ -1,3 +1,5 @@
+import { remove } from './domUtils';
+
 export default function simpleComponent({
   attrsToValue,
   valueToString,
@@ -9,26 +11,23 @@ export default function simpleComponent({
     const children = node ? [node] : [];
 
     return {
-      get children() {
+      children() {
         return children;
       },
-      get firstChild() {
-        return this.children[0];
+      firstChild() {
+        return children[0];
       },
-      get lastChild() {
-        return this.children[children.length - 1];
+      lastChild() {
+        return children[children.length - 1];
       },
-      get value() {
+      value() {
         return value;
       },
       toString() {
         return valueToString(value);
       },
       unmount() {
-        const parent = this.firstChild && this.firstChild.parentNode;
-        if (parent) {
-          parent.removeChild(this.firstChild);
-        }
+        remove(children[0]);
       },
       render,
     };
@@ -37,10 +36,10 @@ export default function simpleComponent({
   return function render(attrs) {
     const value = attrsToValue(attrs);
     if (this) {
-      if (this.value) {
-        if (value !== this.value) {
-          if (this.firstChild) this.firstChild.textContent = value;
-          return makeComponent(value, render, this.firstChild);
+      if (this.value()) {
+        if (value !== this.value()) {
+          if (this.firstChild()) this.firstChild().textContent = value;
+          return makeComponent(value, render, this.firstChild());
         }
 
         return this;
