@@ -45,26 +45,41 @@ export function reduce(iter, reducer, initial) {
   throw new Error('This should never be reached!');
 }
 
-export function diffMaps(a, b) {
-  const diffEntry = (res, [k, v]) => {
-    const aval = a.get(k);
-    a.delete(k);
-    if (v !== aval) res.set(k, [v, aval]);
-    return res;
-  };
-  const removeEntry = (res, k) => {
-    res.set(k, [undefined]);
-    return res;
-  };
+export function forEach(iter, doer) {
+  const iterator = iter[Symbol.iterable]();
 
-  const result = reduce(b.entries(), diffEntry, new Map());
-  return reduce(a.keys(), removeEntry, result);
+  let done;
+  let value;
+  let i = 0;
+  do {
+    ({ value, done } = iterator.next());
+    if (done) return;
+    doer(value, i);
+    i += 1;
+  } while (done !== true);
+  throw new Error('This should never be reached!');
 }
 
-export function toMap(o) {
+export function updateMappedEntries(a, b, update) {
+  const updateEntry = ([k, v]) => {
+    const prevVal = a.get(k);
+    a.delete(k);
+    update(k, v, prevVal);
+  };
+  const removeEntry = (res, [k, v]) => {
+    update(k, undefined, v);
+    return res;
+  };
+
+  forEach(b.entries(), updateEntry);
+  return forEach(a.entries(), removeEntry);
+}
+
+export function toLowerCaseMap(o) {
+  if (o === undefined) return new Map();
   const keys = Object.keys(o).filter(k => Object.hasOwnProperty.call(o, k));
   return keys.reduce((r, k) => {
-    r.set(k, o[k]);
+    r.set(k.toLowerCase(), o[k]);
     return r;
   }, new Map());
 }
