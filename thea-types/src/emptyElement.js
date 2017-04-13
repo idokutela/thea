@@ -3,14 +3,9 @@ import { COMMENT } from './constants';
 import isInBrowser from './dom/isInBrowser';
 
 const placeholderContent = '%%';
-let placeholder = () => ((isInBrowser && document) ?
-  document.createComment(placeholderContent) : undefined);
 
-if (isInBrowser) {
-  placeholder = () => document.createComment(placeholderContent);
-} else {
-  placeholder = () => undefined;
-}
+const placeholder = isInBrowser ? () =>
+  document.createComment(placeholderContent) : () => {};
 
 export default function render() {
   if (this && this.firstChild) { return this; }
