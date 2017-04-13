@@ -1,19 +1,25 @@
 import { remove } from './domUtils';
 import { COMMENT } from './constants';
 
-const placeholderContent = '--P--';
-const placeholder = () => (document ? document.createComment(placeholderContent) : undefined);
+const placeholderContent = '%%';
+let placeholder = () => (document ?
+  document.createComment(placeholderContent) : undefined);
+
+if (typeof window === 'undefined') {
+  placeholder = () => undefined;
+}
 
 export default function render() {
-  if (this.firstChild) { return this; }
+  if (this && this.firstChild) { return this; }
 
   const node = this || placeholder();
+  const children = node ? [node] : [];
 
   if (process.env.NODE_ENV !== 'production') {
     if (node && node.nodeType !== COMMENT) {
       throw new Error('Expected a comment node as placeholder.');
     }
-    if (node.textContent !== placeholderContent) {
+    if (node && node.textContent !== placeholderContent) {
       throw new Error('Unexpected content in placeholder.');
     }
   }
@@ -21,8 +27,8 @@ export default function render() {
   return {
     firstChild() { return node; },
     lastChild() { return node; },
-    children() { return [node]; },
-    toString() { return ''; },
+    children() { return children; },
+    toString() { return `<!--${placeholderContent}-->`; },
     unmount() { remove(node); },
     render,
   };

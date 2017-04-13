@@ -14,16 +14,20 @@
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^4.0.0",
     "eslint-plugin-react": "^6.10.3",
+    "jsdom": "^9.12.0",
     "mocha": "^3.2.0",
     "should": "^11.2.1",
     "sinon": "^2.1.0"
   },
   "scripts": {
     "clean": "rmtrash lib",
-    "test": "mocha --compilers js:babel-core/register --require should \"test/**/*-test.js\"",
-    "build": "yarn run clean && babel -d lib src"
+    "test-browser": "mocha --opts test-browser/mocha.opts",
+    "test-node": "mocha --opts test-node/mocha.opts",
+    "test": "yarn test-browser && yarn test-node",
+    "test:watch": "yarn test -- --watch"
   },
   "dependencies": {
+    "babel-preset-env": "^1.3.3",
     "escape-html": "^1.0.3"
   }
 }
