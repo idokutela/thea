@@ -1,4 +1,4 @@
-import updateEntries from '../src/updateEntries';
+import updateEntries from '../src/util/updateEntries';
 
 describe('updateEntries tests', function () {
   it('should call the diff function with the right values', function () {

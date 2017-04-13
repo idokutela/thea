@@ -1,4 +1,4 @@
-import flatten from '../src/flatten';
+import flatten from '../src/util/flatten';
 
 describe('Flatten test', function () {
   it('should turn a value into an iterable', function () {

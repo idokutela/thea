@@ -1,6 +1,6 @@
 import { TRANSPARENT } from './constants';
 import { emptyElement } from './emptyElement';
-import flatten from './flatten';
+import flatten from './util/flatten';
 import { insertAll } from './domUtils';
 
 function render(attrs, context) {

@@ -1,4 +1,4 @@
-import forEach from '../src/forEach';
+import forEach from '../src/util/forEach';
 
 describe('forEach test', function () {
   it('should run a function for each value of an iterable', function () {

@@ -1,4 +1,4 @@
-import { set, entries, keys, toMap } from '../src/entries';
+import { set, entries, keys, toMap } from '../src/util/entries';
 
 describe('entries tests', function () {
   it('should get the own keys of an object', function () {

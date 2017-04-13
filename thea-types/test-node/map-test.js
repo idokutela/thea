@@ -1,4 +1,4 @@
-import map from '../src/map';
+import map from '../src/util/map';
 
 describe('map test', function () {
   it('should map an iterable', function () {

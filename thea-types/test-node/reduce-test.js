@@ -1,4 +1,4 @@
-import reduce from '../src/reduce';
+import reduce from '../src/util/reduce';
 
 describe('reduce test', function () {
   it('should reduce an iterable', function () {

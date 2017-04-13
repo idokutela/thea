@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 
-import toLowerCaseMap from './toLowerCaseMap';
-import updateEntries from './updateEntries';
+import toLowerCaseMap from './util/toLowerCaseMap';
+import updateEntries from './util/updateEntries';
 import TheaView from './TheaView';
 import { insertAll, remove } from './domUtils';
 import { ELEMENT } from './constants';

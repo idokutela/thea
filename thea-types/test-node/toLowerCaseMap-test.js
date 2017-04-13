@@ -1,4 +1,4 @@
-import toMap from '../src/toLowerCaseMap';
+import toMap from '../src/util/toLowerCaseMap';
 
 describe('toLowerCaseMap tests', function () {
   it('should take an object, lowercase the keys, and turn the result into a map', function () {
