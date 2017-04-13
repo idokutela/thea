@@ -36,7 +36,7 @@ export default function simpleComponent({
   return function render(attrs) {
     const value = attrsToValue(attrs);
     if (this) {
-      if (this.value()) {
+      if (this.value) {
         if (value !== this.value()) {
           if (this.firstChild()) this.firstChild().textContent = value;
           return makeComponent(value, render, this.firstChild());
