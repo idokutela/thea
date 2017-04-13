@@ -1,7 +1,7 @@
 import { TRANSPARENT } from './constants';
 import { emptyElement } from './emptyElement';
 import flatten from './util/flatten';
-import { insertAll } from './domUtils';
+import { insertAll } from './dom/domUtils';
 
 function render(attrs, context) {
   if (process.env.NODE_ENV !== 'production') {

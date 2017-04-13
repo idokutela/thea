@@ -1,4 +1,4 @@
-import isInBrowser from '../src/isInBrowser';
+import isInBrowser from '../src/dom/isInBrowser';
 
 describe('isInBrowser tests', function () {
   it('should return be false', function () {

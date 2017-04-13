@@ -1,4 +1,4 @@
-import { remove } from './domUtils';
+import { remove } from './dom/domUtils';
 
 export default function simpleComponent({
   attrsToValue,

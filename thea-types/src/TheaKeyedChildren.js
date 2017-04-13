@@ -1,7 +1,7 @@
 /* eslint-disable no-use-before-define */
 
 import TheaText from './TheaText';
-import { insertAll } from './domUtils';
+import { insertAll } from './dom/domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
 import flatten from './util/flatten';

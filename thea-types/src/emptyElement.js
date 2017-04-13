@@ -1,6 +1,6 @@
-import { remove } from './domUtils';
+import { remove } from './dom/domUtils';
 import { COMMENT } from './constants';
-import isInBrowser from './isInBrowser';
+import isInBrowser from './dom/isInBrowser';
 
 const placeholderContent = '%%';
 let placeholder = () => ((isInBrowser && document) ?

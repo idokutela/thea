@@ -3,7 +3,7 @@
 import toLowerCaseMap from './util/toLowerCaseMap';
 import updateEntries from './util/updateEntries';
 import TheaView from './TheaView';
-import { insertAll, remove } from './domUtils';
+import { insertAll, remove } from './dom/domUtils';
 import { ELEMENT } from './constants';
 
 const tags = new Map();
