@@ -10,7 +10,7 @@ describe('tx builder tests', function () {
     const r = txBuilder({});
     r.should.be.an.Object();
     r.JSXElement.should.be.a.Function();
-    Object.keys(r).filter(k => Object.hasOwnProperty.call(r, k)).length.should.equal(1);
+    Object.keys(r).length.should.equal(1);
   });
 
   it('should correctly transform some code', function () {

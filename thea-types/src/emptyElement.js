@@ -1,11 +1,14 @@
 import { remove } from './domUtils';
 import { COMMENT } from './constants';
+import isInBrowser from './isInBrowser';
 
 const placeholderContent = '%%';
-let placeholder = () => (document ?
+let placeholder = () => ((isInBrowser && document) ?
   document.createComment(placeholderContent) : undefined);
 
-if (typeof window === 'undefined') {
+if (isInBrowser) {
+  placeholder = () => document.createComment(placeholderContent);
+} else {
   placeholder = () => undefined;
 }
 

@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 
-import { toLowerCaseMap, updateMappedEntries } from './dataUtils';
+import toLowerCaseMap from './toLowerCaseMap';
+import updateEntries from './updateEntries';
 import TheaView from './TheaView';
 import { insertAll, remove } from './domUtils';
 import { ELEMENT } from './constants';
@@ -136,8 +137,8 @@ function makeTag(tag) {
     const node = this.firstChild();
     const updateStyle = updateStyleForNode(node);
     const updateAttribute = updateAttributeForNode(node);
-    updateMappedEntries(attrMap, this.attrMap(), updateAttribute);
-    updateMappedEntries(styleMap, this.styleMap(), updateStyle);
+    updateEntries(attrMap, this.attrMap(), updateAttribute);
+    updateEntries(styleMap, this.styleMap(), updateStyle);
     const childComponent = TheaView.call(this.childComponent(), children, context);
     return makeComponent(node, attrMap, styleMap, childComponent);
   }

@@ -1,5 +1,5 @@
 import { TRANSPARENT } from './constants';
-import { flatten } from './dataUtils';
+import flatten from './flatten';
 
 function render(attrs, context) {
   function makeComponent(childComponents) {

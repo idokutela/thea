@@ -4,7 +4,7 @@ import TheaText from './TheaText';
 import { insertAll } from './domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
-import { flatten } from './dataUtils';
+import flatten from './flatten';
 
 function render(attrs, context) {
   const reconcileChild = oldMap =>
