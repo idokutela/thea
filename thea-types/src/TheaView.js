@@ -1,9 +1,9 @@
 import { TRANSPARENT } from './constants';
 import flatten from './util/flatten';
 
-function render(attrs, context) {
-  function makeComponent(childComponents) {
-    return {
+function render(attrs = [], context) {
+  function renderComponent(childComponents) {
+    return Object.assign(this || {}, {
       firstChild() {
         return childComponents[0].firstChild();
       },
@@ -19,8 +19,7 @@ function render(attrs, context) {
       unmount() {
         childComponents.forEach(c => c.unmount());
       },
-      render,
-    };
+    });
   }
 
   if (process.env.NODE_ENV !== 'production') {
@@ -39,16 +38,16 @@ function render(attrs, context) {
 
   if (!this) {
     childComponents = attrs.map(([r, a]) => r(a, context));
-    return makeComponent(childComponents);
+    return renderComponent(childComponents);
   }
 
-  if (!this.render) {
+  if (!this.firstChild) {
     childComponents = attrs.reduce((c, [r, a]) => {
       const next = c.length ? c[c.length - 1].nextSibling : this;
       c.push(r.call(next, a, context));
       return c;
     });
-    return makeComponent(childComponents);
+    return renderComponent(childComponents);
   }
 
   const currentComponents = this.childComponents();
@@ -69,7 +68,7 @@ function render(attrs, context) {
   }
 
   childComponents = attrs.map(updateChild);
-  return makeComponent(currentComponents);
+  return render.call(this, currentComponents);
 }
 
 render[TRANSPARENT] = true;

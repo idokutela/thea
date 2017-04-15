@@ -7,18 +7,17 @@ export default function simpleComponent({
   componentName,
   createNode,
 }) {
-  function makeComponent(value, render, node = createNode(value)) {
+  function renderComponent(value, node = createNode(value)) {
     const children = node ? [node] : [];
-
-    return {
+    return Object.assign(this || {}, {
       children() {
         return children;
       },
       firstChild() {
-        return children[0];
+        return node;
       },
       lastChild() {
-        return children[children.length - 1];
+        return node;
       },
       value() {
         return value;
@@ -29,17 +28,16 @@ export default function simpleComponent({
       unmount() {
         remove(children[0]);
       },
-      render,
-    };
+    });
   }
 
   return function render(attrs) {
     const value = attrsToValue(attrs);
     if (this) {
-      if (this.value) {
+      if (this.firstChild) {
         if (value !== this.value()) {
           if (this.firstChild()) this.firstChild().textContent = value;
-          return makeComponent(value, render, this.firstChild());
+          return renderComponent.call(this, value, this.firstChild());
         }
 
         return this;
@@ -50,8 +48,8 @@ export default function simpleComponent({
       if (this.textContent !== value) {
         throw new Error(`${componentName}: The text does not match the content of the existing node.`);
       }
-      return makeComponent(value, render, this);
+      return renderComponent(value, this);
     }
-    return makeComponent(value, render);
+    return renderComponent(value);
   };
 }

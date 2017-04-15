@@ -8,14 +8,13 @@ describe('Empty element node tests', function () {
     (el.firstChild() === el.lastChild()).should.be.true();
     (el.firstChild() === undefined).should.be.true();
     el.toString().should.equal('<!--%%-->');
-    el.render.should.equal(EmptyElement);
     el.unmount.should.be.a.Function();
   });
 
   it('should render idempotently', function () {
     const or = EmptyElement();
     const clone = Object.assign({}, or);
-    const el = or.render();
+    const el = EmptyElement.call(or);
     el.should.equal(or);
     el.should.eql(clone);
   });

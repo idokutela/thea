@@ -8,18 +8,17 @@ describe('TheaComment node tests', function () {
     c.children().should.eql([]);
     (c.firstChild() === undefined).should.be.true();
     (c.lastChild() === undefined).should.be.true();
-    c.render.should.equal(render);
     c.toString().should.equal('<!--foo &amp; bar-->');
   });
 
   it('should correctly update', function () {
     const val = 'foo & bar';
-    const c = render(['foo']).render([val]);
+    const c = render(['foo']);
+    render.call(c, [val]);
     c.unmount.should.be.a.Function();
     c.children().should.eql([]);
     (c.firstChild() === undefined).should.be.true();
     (c.lastChild() === undefined).should.be.true();
-    c.render.should.equal(render);
     c.toString().should.equal('<!--foo &amp; bar-->');
   });
 });

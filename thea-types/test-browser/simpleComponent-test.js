@@ -29,7 +29,6 @@ describe('Simple Component tests', function () {
     c.children().should.eql([document.createTextNode(attrsToValue('hello'))]);
     c.firstChild().should.eql(document.createTextNode(attrsToValue('hello')));
     c.lastChild().should.eql(document.createTextNode(attrsToValue('hello')));
-    c.render.should.equal(component);
     c.toString().should.equal('tString(----hello----)');
   });
 
@@ -40,7 +39,6 @@ describe('Simple Component tests', function () {
     c.children().should.eql([document.createTextNode(attrsToValue('bla'))]);
     c.firstChild().should.eql(document.createTextNode(attrsToValue('bla')));
     c.lastChild().should.eql(document.createTextNode(attrsToValue('bla')));
-    c.render.should.equal(component);
     c.toString().should.equal('tString(----bla----)');
 
     node = document.createTextNode(attrsToValue('hello'));
@@ -59,13 +57,11 @@ describe('Simple Component tests', function () {
   });
 
   it('should update correctly', function () {
-    const o = component('bye');
-    const c = component.call(o, 'hello');
-    o.should.not.equal(c);
+    const c = component('bye');
+    component.call(c, 'hello');
     c.children().should.eql([document.createTextNode(attrsToValue('hello'))]);
     c.firstChild().should.eql(document.createTextNode(attrsToValue('hello')));
     c.lastChild().should.eql(document.createTextNode(attrsToValue('hello')));
-    c.render.should.equal(component);
     c.toString().should.equal('tString(----hello----)');
   });
 
@@ -85,7 +81,6 @@ describe('Simple Component tests', function () {
     c.children().should.eql([]);
     (c.firstChild() === undefined).should.be.true();
     (c.lastChild() === undefined).should.be.true();
-    c.render.should.equal(component);
     c.toString().should.equal('tString(----hello----)');
     c.unmount();
   });

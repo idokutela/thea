@@ -10,7 +10,6 @@ describe('Empty element tests', function () {
     children[0].nodeType.should.equal(window.Node.COMMENT_NODE);
     children[0].textContent.should.equal('%%');
     el.toString().should.equal('<!--%%-->');
-    el.render.should.equal(EmptyElement);
     el.unmount.should.be.a.Function();
   });
 
@@ -26,7 +25,6 @@ describe('Empty element tests', function () {
     children[0].textContent.should.equal('%%');
     el.toString().should.equal('<!--%%-->');
     el.should.not.equal(or);
-    el.render.should.equal(EmptyElement);
     el.unmount.should.be.a.Function();
   });
 
@@ -40,7 +38,7 @@ describe('Empty element tests', function () {
   it('should render idempotently', function () {
     const or = EmptyElement();
     const clone = Object.assign({}, or);
-    const el = or.render();
+    const el = EmptyElement.call(or);
     el.should.equal(or);
     el.should.eql(clone);
   });

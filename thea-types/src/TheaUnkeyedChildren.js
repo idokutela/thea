@@ -10,8 +10,8 @@ function render(attrs, context) {
     }
   }
 
-  function makeComponent(childComponents, empty) {
-    return {
+  function updateState(childComponents, empty) {
+    return Object.assign(this || {}, {
       childComponents() { return childComponents; },
       empty() { return empty; },
       firstChild() {
@@ -37,36 +37,35 @@ function render(attrs, context) {
         childComponents.forEach(c => c.unmount());
         return undefined;
       },
-      render,
-    };
+    });
   }
 
   let childComponents;
   if (!this) {
     if (attrs.length) {
       childComponents = attrs.map(([r, a]) => r(a, context));
-      return makeComponent(childComponents);
+      return updateState(childComponents);
     }
-    return makeComponent([], emptyElement());
+    return updateState([], emptyElement());
   }
 
-  if (!this.render) {
+  if (!this.firstChild) {
     if (attrs.length) {
       childComponents = attrs.reduce((c, [r, a]) => {
         const next = c.length ? c[c.length - 1].nextSibling : this;
         c.push(r.call(next, a, context));
         return c;
       }, []);
-      return makeComponent(childComponents);
+      return updateState(childComponents);
     }
-    return makeComponent([], emptyElement.call(this));
+    return updateState([], emptyElement.call(this));
   }
 
   if (!attrs.length !== !this.empty) {
     const result = render(attrs, context);
     insertAll(result.children(), this.firstChild());
     this.unmount();
-    return result;
+    return updateState.call(this, result.childComponents(), result.empty());
   }
   if (this.empty) {
     return this;
@@ -74,6 +73,7 @@ function render(attrs, context) {
 
   const currentChildren = this.childComponents();
   let toUpdate;
+
   function updateChild([r, a], i) {
     const child = toUpdate[i];
     if (process.env.NODE_ENV !== 'production') {
@@ -89,7 +89,7 @@ function render(attrs, context) {
     const toRemove = currentChildren.slice(attrs.length);
     childComponents = attrs.map(updateChild);
     toRemove.forEach(c => c.unmount());
-    return makeComponent(childComponents);
+    return updateState.call(this, childComponents);
   }
 
   toUpdate = currentChildren;
@@ -100,7 +100,7 @@ function render(attrs, context) {
   childComponents = updateingAttrs.map(updateChild);
   const newComponents = toAdd.map(([r, a]) => r(a, context));
   insertAll(newComponents.map(x => x.children()), nextSibling, parent);
-  return makeComponent(childComponents.concat(newComponents));
+  return updateState.call(this, childComponents.concat(newComponents));
 }
 
 render[TRANSPARENT] = true;

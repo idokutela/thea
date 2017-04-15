@@ -1,6 +1,6 @@
 import render from '../src/TheaComment';
 
-describe('TheaText browser tests', function () {
+describe('TheaComment browser tests', function () {
   it('should make a TheaText component', function () {
     const val = 'foo & bar';
     const c = render([val]);
@@ -9,7 +9,6 @@ describe('TheaText browser tests', function () {
     c.children().should.eql([expectedNode]);
     c.firstChild().should.eql(expectedNode);
     c.lastChild().should.eql(expectedNode);
-    c.render.should.equal(render);
     c.toString().should.equal('<!--foo &amp; bar-->');
   });
 
@@ -21,7 +20,6 @@ describe('TheaText browser tests', function () {
     c.children().should.eql([node]);
     c.firstChild().should.eql(node);
     c.lastChild().should.eql(node);
-    c.render.should.equal(render);
     c.toString().should.equal('<!--&lt;What?!&gt;-->');
 
     node = document.createComment('What?!');
@@ -41,15 +39,13 @@ describe('TheaText browser tests', function () {
   });
 
   it('should update correctly', function () {
-    const o = render(['initial']);
+    const c = render(['initial']);
     const val = 'some text';
-    const c = render.call(o, [val]);
-    o.should.not.equal(c);
+    render.call(c, [val]);
     const expectedNode = document.createComment(val);
     c.children().should.eql([expectedNode]);
     c.firstChild().should.eql(expectedNode);
     c.lastChild().should.eql(expectedNode);
-    c.render.should.equal(render);
     c.toString().should.equal('<!--some text-->');
   });
 

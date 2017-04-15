@@ -7,8 +7,9 @@ import emptyElement from './emptyElement';
 import flatten from './util/flatten';
 
 function render(attrs, context) {
-  const reconcileChild = oldMap =>
-    (prev, current, count) => reconcileChildInt(oldMap, prev, current, count);
+  const reconcileChild = function reconcileChild(oldMap) {
+    return reconcileChildInt.bind(undefined, oldMap);
+  };
 
   // Normalise children
   let newChildren = attrs;
@@ -22,7 +23,7 @@ function render(attrs, context) {
 
   // Deal with the two special cases
   if (!this) return mount(newChildren, context);
-  if (!this.render) return revive(this, newChildren, context);
+  if (!this.firstChild) return revive(this, newChildren, context);
 
   // Reconcile children
   const { childComponents, nodeMap } = attrs.reduce(
@@ -30,20 +31,19 @@ function render(attrs, context) {
       { childComponents: [], nodeMap: new Map(), front: this.firstChild() },
   );
 
-  return makeComponent(nodeMap, childComponents);
+  return updateState.call(this, nodeMap, childComponents);
 
-  function makeComponent(nodeMap, childComponents) { // eslint-disable-line
-    return {
+  function updateState(nodeMap, childComponents) { // eslint-disable-line
+    return Object.assign(this || {}, {
       nodeMap() { return nodeMap; },
       firstChild() { return childComponents[0].firstChild(); },
       lastChild() { return childComponents[childComponents.length - 1].lastChild(); },
       children() { return flatten(childComponents.map(c => c.children())); },
       toString() { return childComponents.reduce((r, c) => r + c.toString(), ''); },
-      render,
       unmount() {
         childComponents.forEach(c => c.unmount());
       },
-    };
+    });
   }
 
   function revive(node, children) {
@@ -63,7 +63,7 @@ function render(attrs, context) {
     const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
       reviveChild, { nodeMap: new Map(), childComponents: [], firstNode: node });
 
-    return makeComponent(nodeMap, childComponents);
+    return updateState(nodeMap, childComponents);
   }
 
   function mount(children) {
@@ -77,7 +77,7 @@ function render(attrs, context) {
     const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
       mountChild, { nodeMap: new Map(), childComponents: [] });
 
-    return makeComponent(nodeMap, childComponents);
+    return updateState(nodeMap, childComponents);
   }
 
   function reconcileChildInt(oldMap,

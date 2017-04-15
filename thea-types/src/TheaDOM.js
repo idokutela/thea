@@ -61,8 +61,8 @@ function makeTag(tag) {
   const isVoid = voidElements.has(tagName);
 
   function render(attrs = {}, context) {
-    function makeComponent(node, attrMap, styleMap, childComponent) {
-      return ({
+    function updateState(node, attrMap, styleMap, childComponent) {
+      return Object.assign(this || {}, {
         firstChild() { return node; },
         lastChild() { return node; },
         children() { return [node]; },
@@ -82,7 +82,6 @@ function makeTag(tag) {
           childComponent && childComponent.unmount(); // eslint-disable-line
           remove(node);
         },
-        render,
       });
     }
 
@@ -112,10 +111,10 @@ function makeTag(tag) {
         [...attrMap.entries()].forEach(([key, value]) => updateAttribute(key, value));
         [...styleMap.entries()].forEach(([key, value]) => updateStyle(key, value));
       }
-      return makeComponent(node, attrMap, styleMap, childComponent);
+      return updateState(node, attrMap, styleMap, childComponent);
     }
 
-    if (!this.render) {
+    if (!this.firstChild) {
       if (process.env.NODE_ENV !== 'production') {
         if (this.nodeType !== ELEMENT || this.tagname !== tagName) {
           throw new Error(`Expected an element node of type ${tagName}`);
@@ -131,7 +130,7 @@ function makeTag(tag) {
       if (children.length) {
         childComponent = TheaView.call(this.firstChild, children, context);
       }
-      return makeComponent(this, attrMap, styleMap, childComponent);
+      return updateState(this, attrMap, styleMap, childComponent);
     }
 
     const node = this.firstChild();
@@ -140,7 +139,7 @@ function makeTag(tag) {
     updateEntries(attrMap, this.attrMap(), updateAttribute);
     updateEntries(styleMap, this.styleMap(), updateStyle);
     const childComponent = TheaView.call(this.childComponent(), children, context);
-    return makeComponent(node, attrMap, styleMap, childComponent);
+    return updateState.call(this, node, attrMap, styleMap, childComponent);
   }
   /* eslint-enable no-param-reassign */
 

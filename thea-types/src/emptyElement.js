@@ -4,8 +4,9 @@ import isInBrowser from './dom/isInBrowser';
 
 const placeholderContent = '%%';
 
-const placeholder = isInBrowser ? () =>
-  document.createComment(placeholderContent) : () => {};
+const placeholder = isInBrowser ?
+  () => document.createComment(placeholderContent) :
+  () => {};
 
 export default function render() {
   if (this && this.firstChild) { return this; }
@@ -28,6 +29,5 @@ export default function render() {
     children() { return children; },
     toString() { return `<!--${placeholderContent}-->`; },
     unmount() { remove(node); },
-    render,
   };
 }
