@@ -37,6 +37,7 @@ function render(attrs, context) {
         childComponents.forEach(c => c.unmount());
         return undefined;
       },
+      render,
     });
   }
 
@@ -49,7 +50,7 @@ function render(attrs, context) {
     return updateState([], emptyElement());
   }
 
-  if (!this.firstChild) {
+  if (!this.unmount) {
     if (attrs.length) {
       childComponents = attrs.reduce((c, [r, a]) => {
         const next = c.length ? c[c.length - 1].nextSibling : this;

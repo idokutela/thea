@@ -5,10 +5,11 @@ import { insertAll } from './dom/domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
 import flatten from './util/flatten';
+import forEach from './util/forEach';
 
 function render(attrs, context) {
-  const reconcileChild = function reconcileChild(oldMap) {
-    return reconcileChildInt.bind(undefined, oldMap);
+  const reconcileChild = function reconcileChild(oldMap, parentNode) {
+    return reconcileChildInt.bind(undefined, oldMap, parentNode);
   };
 
   // Normalise children
@@ -22,14 +23,15 @@ function render(attrs, context) {
   }
 
   // Deal with the two special cases
-  if (!this) return mount(newChildren, context);
-  if (!this.firstChild) return revive(this, newChildren, context);
+  if (!this) return mount(newChildren);
+  if (!this.unmount) return revive(this, newChildren);
 
   // Reconcile children
   const { childComponents, nodeMap } = attrs.reduce(
-    reconcileChild(this.nodeMap(), context),
+    reconcileChild(this.nodeMap(), this.firstChild() && this.firstChild().parentNode),
       { childComponents: [], nodeMap: new Map(), front: this.firstChild() },
   );
+  forEach(this.nodeMap().values(), x => x.unmount());
 
   return updateState.call(this, nodeMap, childComponents);
 
@@ -43,6 +45,7 @@ function render(attrs, context) {
       unmount() {
         childComponents.forEach(c => c.unmount());
       },
+      render,
     });
   }
 
@@ -80,7 +83,7 @@ function render(attrs, context) {
     return updateState(nodeMap, childComponents);
   }
 
-  function reconcileChildInt(oldMap,
+  function reconcileChildInt(oldMap, parentNode,
     { childComponents, nodeMap, front }, [renderChild, attrs, index], count) { // eslint-disable-line
     const childIndex = index === undefined ? count : index;
     let prevChild = oldMap.get(childIndex);
@@ -89,16 +92,21 @@ function render(attrs, context) {
 
     if (!prevChild || prevChild.render !== renderChild) {
       newChild = renderChild(attrs, context);
-      front = front === prevChild.firstChild() ? prevChild.lastChild().nextSibling : front; // eslint-disable-line
+      if (prevChild) {
+        front = front === prevChild.firstChild() ? (prevChild.lastChild() && prevChild.lastChild().nextSibling) : front; // eslint-disable-line
+      }
       prevChild && prevChild.unmount(); // eslint-disable-line
       prevChild = undefined;
       shouldMove = true;
     } else {
-      shouldMove = prevChild.firstNode() !== front;
+      shouldMove = prevChild.firstChild() !== front;
       newChild = prevChild.render(attrs, context);
     }
-    if (shouldMove) insertAll(newChild.children, front);
+    if (shouldMove && parentNode) {
+      insertAll(newChild.children(), front, parentNode);
+    }
     nodeMap.set(childIndex, newChild);
+    oldMap.delete(childIndex);
     childComponents.push(newChild);
     front = newChild.lastChild() && newChild.lastChild().nextSibling; // eslint-disable-line
 

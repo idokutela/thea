@@ -28,6 +28,7 @@ export default function simpleComponent({
       unmount() {
         remove(children[0]);
       },
+      render: renderComponent,
     });
   }
 

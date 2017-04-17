@@ -3,6 +3,10 @@ Thea is a javascript tiny library to create views.
 It’s lightning fast and stupidly easy.
 
 ## Components
+Components are defined by their *renderer* a function that takes
+attributes and a rendering context, and updates DOM accordingly.
+It returns any internal state it might need for future updates.
+
 Thea’s basic philosophy is that views are built by composing
 components. Thea sees components as completely defined by their render function.
 This is a function of two variables:

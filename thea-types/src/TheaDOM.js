@@ -82,6 +82,7 @@ function makeTag(tag) {
           childComponent && childComponent.unmount(); // eslint-disable-line
           remove(node);
         },
+        render,
       });
     }
 
@@ -114,7 +115,7 @@ function makeTag(tag) {
       return updateState(node, attrMap, styleMap, childComponent);
     }
 
-    if (!this.firstChild) {
+    if (!this.umount) {
       if (process.env.NODE_ENV !== 'production') {
         if (this.nodeType !== ELEMENT || this.tagname !== tagName) {
           throw new Error(`Expected an element node of type ${tagName}`);

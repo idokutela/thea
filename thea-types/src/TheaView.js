@@ -19,6 +19,8 @@ function render(attrs = [], context) {
       unmount() {
         childComponents.forEach(c => c.unmount());
       },
+      childComponents() { return childComponents; },
+      render,
     });
   }
 
@@ -41,12 +43,12 @@ function render(attrs = [], context) {
     return renderComponent(childComponents);
   }
 
-  if (!this.firstChild) {
+  if (!this.unmount) {
     childComponents = attrs.reduce((c, [r, a]) => {
-      const next = c.length ? c[c.length - 1].nextSibling : this;
+      const next = c.length ? c[c.length - 1].lastChild().nextSibling : this;
       c.push(r.call(next, a, context));
       return c;
-    });
+    }, []);
     return renderComponent(childComponents);
   }
 
@@ -59,16 +61,11 @@ function render(attrs = [], context) {
   }
 
   function updateChild([r, a], i) {
-    if (process.env.NODE_ENV !== 'production') {
-      if (currentComponents[i].render !== r) {
-        throw new Error('The child types do not match up. Views must have a consistent structure.');
-      }
-    }
     return r.call(currentComponents[i], a, context);
   }
 
   childComponents = attrs.map(updateChild);
-  return render.call(this, currentComponents);
+  return renderComponent.call(this, childComponents);
 }
 
 render[TRANSPARENT] = true;

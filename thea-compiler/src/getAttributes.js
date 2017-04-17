@@ -1,6 +1,6 @@
 import * as t from 'babel-types';
 
-const spread = Symbol.for('spread');
+const spread = Symbol('spread');
 
 const convertValue = (node) => {
   if (t.isJSXExpressionContainer(node)) return node.expression;

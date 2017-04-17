@@ -29,5 +29,6 @@ export default function render() {
     children() { return children; },
     toString() { return `<!--${placeholderContent}-->`; },
     unmount() { remove(node); },
+    render,
   };
 }
