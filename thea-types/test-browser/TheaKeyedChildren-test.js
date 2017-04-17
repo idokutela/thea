@@ -240,6 +240,43 @@ describe('TheaKeyedChildren tests', function () {
     components[4].context.should.equal(' the slap');
   });
 
+  it('should update unmounted keyed children correctly', function () {
+    const children = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
+    const component = render(children, ' the sloop');
+    const updatedAttrs = [[renderChildP, 'froozy', 'b'], [renderChildP, 'zoot', 'a'], [renderChildSpan, 'hello', 'd'], [renderChildP, 'bat', 'c'], [renderChildP, 'baz', 'z']];
+    render.call(component, updatedAttrs, ' the slap').should.equal(component);
+    const childNodes = [...component.children()];
+    childNodes[0].should.equal(component.firstChild());
+    childNodes[13].should.equal(component.lastChild());
+    component.firstChild().textContent.should.equal('froozy the slap');
+    component.firstChild().tagName.should.equal('P');
+    component.lastChild().textContent.should.equal('baz the slap');
+    component.lastChild().tagName.should.equal('P');
+    childNodes[1].tagName.should.equal('P');
+    childNodes[1].textContent.should.equal('zoot the slap');
+    childNodes[12].tagName.should.equal('P');
+    childNodes[12].textContent.should.equal('bat the slap');
+
+    for (let i = 2; i < 12; i++) { // eslint-disable-line
+      childNodes[i].tagName.should.equal('SPAN');
+      childNodes[i].textContent.should.equal('hello the slap');
+    }
+    component.unmount.should.be.a.Function();
+    components.length.should.equal(6);
+    components[0].attrs.should.equal('hello');
+    components[0].context.should.equal(' the sloop');
+    components[1].attrs.should.equal('froozy');
+    components[1].context.should.equal(' the slap');
+    components[2].attrs.should.equal('bat');
+    components[2].context.should.equal(' the slap');
+    components[3].attrs.should.equal('zoot');
+    components[3].context.should.equal(' the slap');
+    components[4].attrs.should.equal('hello');
+    components[4].context.should.equal(' the slap');
+    components[5].attrs.should.equal('baz');
+    components[5].context.should.equal(' the slap');
+  });
+
   it('should unmount correctly', function () {
     const children = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
     const component = render(children, ' the sloop');
