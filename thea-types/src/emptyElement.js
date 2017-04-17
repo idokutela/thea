@@ -9,7 +9,7 @@ const placeholder = isInBrowser ?
   () => {};
 
 export default function render() {
-  if (this && this.firstChild) { return this; }
+  if (this && this.unmount) { return this; }
 
   const node = this || placeholder();
   const children = node ? [node] : [];

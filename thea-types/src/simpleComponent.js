@@ -1,5 +1,7 @@
 import { remove } from './dom/domUtils';
 
+const VALUE = Symbol('value');
+
 export default function simpleComponent({
   attrsToValue,
   valueToString,
@@ -10,6 +12,7 @@ export default function simpleComponent({
   function renderComponent(value, node = createNode(value)) {
     const children = node ? [node] : [];
     return Object.assign(this || {}, {
+      [VALUE]: value,
       children() {
         return children;
       },
@@ -20,10 +23,10 @@ export default function simpleComponent({
         return node;
       },
       value() {
-        return value;
+        return this[VALUE];
       },
       toString() {
-        return valueToString(value);
+        return valueToString(this[VALUE]);
       },
       unmount() {
         remove(children[0]);
@@ -35,10 +38,11 @@ export default function simpleComponent({
   return function render(attrs) {
     const value = attrsToValue(attrs);
     if (this) {
-      if (this.firstChild) {
+      if (this.unmount) {
         if (value !== this.value()) {
           if (this.firstChild()) this.firstChild().textContent = value;
-          return renderComponent.call(this, value, this.firstChild());
+          this[VALUE] = value;
+          return this;
         }
 
         return this;

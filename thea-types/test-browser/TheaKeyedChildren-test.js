@@ -52,8 +52,8 @@ describe('TheaKeyedChildren tests', function () {
         render: renderChildSpan,
       };
     }
+    const numNodes = 10;
     if (!this) {
-      const numNodes = 10;
       const nodes = Array.from({ length: numNodes })
         .map(() => {
           const node = document.createElement('SPAN');
@@ -65,7 +65,7 @@ describe('TheaKeyedChildren tests', function () {
     }
     if (!this.unmount) {
       const nodes = [];
-      for (let node = this; node && (node.tagName === 'SPAN'); node = node.nextSibling) {
+      for (let node = this; nodes.length < numNodes; node = node.nextSibling) {
         nodes.push(node);
       }
       components.push(makeChild(nodes));
@@ -122,6 +122,32 @@ describe('TheaKeyedChildren tests', function () {
     components[2].context.should.equal(' the sloop');
   });
 
+  it('should handle odd children', function () {
+    let children = 'hello';
+    let component = render(children);
+    let childNodes = [...component.children()];
+    childNodes.length.should.equal(1);
+    component.firstChild().nodeType.should.equal(window.Node.TEXT_NODE);
+    component.firstChild().textContent.should.equal('hello');
+    children = [renderChildP, 'Blow'];
+    component = render(children, '');
+    childNodes = [...component.children()];
+    childNodes.length.should.equal(1);
+    component.firstChild().tagName.should.equal('P');
+    component.firstChild().textContent.should.equal('Blow');
+    children = ['What', [renderChildP, 'me'], 'worry'];
+    component = render(children, '');
+    childNodes = [...component.children()];
+    childNodes.length.should.equal(3);
+    childNodes[0].nodeType.should.equal(window.Node.TEXT_NODE);
+    childNodes[0].textContent.should.equal('What');
+    childNodes[1].tagName.should.equal('P');
+    childNodes[1].textContent.should.equal('me');
+    childNodes[2].nodeType.should.equal(window.Node.TEXT_NODE);
+    childNodes[2].textContent.should.equal('worry');
+  });
+
+
   it('should revive a bunch of children', function () {
     const children = [[renderChildP, 'hello'], [renderChildSpan, 'fraidy'], [renderChildP, 'bar']];
     [...render(children, ' the sloop').children()].forEach(n => document.body.appendChild(n));
@@ -155,6 +181,7 @@ describe('TheaKeyedChildren tests', function () {
     const updatedAttrs = [[renderChildP, 'hallo'], [renderChildP, 'basty']];
     render.call(component, updatedAttrs, ' the slap').should.equal(component);
     const childNodes = [...component.children()];
+    childNodes.length.should.equal(2);
     childNodes[0].should.equal(component.firstChild());
     childNodes[1].should.equal(component.lastChild());
     component.firstChild().textContent.should.equal('hallo the slap');
@@ -275,6 +302,58 @@ describe('TheaKeyedChildren tests', function () {
     components[4].context.should.equal(' the slap');
     components[5].attrs.should.equal('baz');
     components[5].context.should.equal(' the slap');
+  });
+
+  it('should update children to none', function () {
+    const children = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
+    const component = render(children, ' the sloop');
+    [...component.children()].forEach(n => document.body.appendChild(n));
+    const updatedAttrs = [];
+    render.call(component, updatedAttrs, ' the slap').should.equal(component);
+    [...document.body.childNodes].length.should.equal(1);
+    document.body.firstChild.nodeType.should.equal(window.Node.COMMENT_NODE);
+    document.body.firstChild.textContent.should.equal('%%');
+    const childNodes = [...component.children()];
+    childNodes.length.should.equal(1);
+    component.firstChild().should.equal(component.lastChild());
+    component.firstChild().should.equal(childNodes[0]);
+    component.unmount.should.be.a.Function();
+    components.length.should.equal(3);
+    components[0].attrs.should.equal('hello');
+    components[0].context.should.equal(' the sloop');
+    components[1].attrs.should.equal('fraidy');
+    components[1].context.should.equal(' the sloop');
+    components[2].attrs.should.equal('bar');
+    components[2].context.should.equal(' the sloop');
+    [...document.body.childNodes].length.should.equal(1);
+    document.body.firstChild.nodeType.should.equal(window.Node.COMMENT_NODE);
+    document.body.firstChild.textContent.should.equal('%%');
+  });
+
+  it('should update no children to several', function () {
+    const children = [];
+    const component = render(children, ' the sloop');
+    [...component.children()].forEach(n => document.body.appendChild(n));
+    const updatedAttrs = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
+    render.call(component, updatedAttrs, ' the slap').should.equal(component);
+    [...document.body.childNodes].length.should.equal(12);
+    const childNodes = [...component.children()];
+    childNodes.should.eql([...document.body.childNodes]);
+    component.firstChild().should.equal(childNodes[0]);
+    component.lastChild().should.equal(childNodes[11]);
+    for (let i = 0; i < 10; i++) { // eslint-disable-line
+      childNodes[i].tagName.should.equal('SPAN');
+      childNodes[i].textContent.should.equal('hello the slap');
+    }
+
+    component.unmount.should.be.a.Function();
+    components.length.should.equal(3);
+    components[0].attrs.should.equal('hello');
+    components[0].context.should.equal(' the slap');
+    components[1].attrs.should.equal('fraidy');
+    components[1].context.should.equal(' the slap');
+    components[2].attrs.should.equal('bar');
+    components[2].context.should.equal(' the slap');
   });
 
   it('should unmount correctly', function () {

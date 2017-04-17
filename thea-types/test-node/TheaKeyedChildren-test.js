@@ -12,6 +12,7 @@ describe('TheaKeyedChildren tests', function () {
         unmount() { this.unmounted = true; },
         attrs,
         context,
+        toString() { return `P${attrs}${context}`; },
         render: renderChildP,
       };
     }
@@ -38,6 +39,7 @@ describe('TheaKeyedChildren tests', function () {
         unmount() { this.unmounted = true; },
         attrs,
         context,
+        toString() { return `SPAN${attrs}${context}`; },
         render: renderChildSpan,
       };
     }
@@ -86,6 +88,14 @@ describe('TheaKeyedChildren tests', function () {
     components[1].context.should.equal(' the sloop');
     components[2].attrs.should.equal('bar');
     components[2].context.should.equal(' the sloop');
+  });
+
+  it('should correctly compute toString', function () {
+    const children = [[renderChildP, 'hello'], [renderChildSpan, 'fraidy'], [renderChildSpan, 'bar']];
+    let component = render(children, ' the sloop');
+    component.toString().should.equal('Phello the sloopSPANfraidy the sloopSPANbar the sloop');
+    component = render([]);
+    component.toString().should.equal('<!--%%-->');
   });
 
   it('should update a bunch of children', function () {

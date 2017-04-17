@@ -1,7 +1,10 @@
 import { TRANSPARENT } from './constants';
-import { emptyElement } from './emptyElement';
+import emptyElement from './emptyElement';
 import flatten from './util/flatten';
 import { insertAll } from './dom/domUtils';
+
+const CHILD_COMPONENTS = Symbol('child components');
+const EMPTY = Symbol('empty');
 
 function render(attrs, context) {
   if (process.env.NODE_ENV !== 'production') {
@@ -11,34 +14,38 @@ function render(attrs, context) {
   }
 
   function updateState(childComponents, empty) {
-    return Object.assign(this || {}, {
-      childComponents() { return childComponents; },
-      empty() { return empty; },
+    const result = this || {
+      childComponents() { return this[CHILD_COMPONENTS]; },
+      empty() { return this[EMPTY]; },
       firstChild() {
-        return empty ? empty.firstChild() :
-          childComponents[0].firstChild();
+        return this[EMPTY] ? this[EMPTY].firstChild() :
+          this[CHILD_COMPONENTS][0].firstChild();
       },
       lastChild() {
-        return empty ? empty.lastChild() :
-          childComponents[childComponents.length - 1].lastChild();
+        return this[EMPTY] ? this[EMPTY].lastChild() :
+          this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
       },
       children() {
-        return empty ? empty.children() :
-          flatten(childComponents.map(c => c.children()));
+        return this[EMPTY] ? this[EMPTY].children() :
+          flatten(this[CHILD_COMPONENTS].map(c => c.children()));
       },
       toString() {
-        return empty ? empty.toString() :
-          childComponents.reduce((r, c) => r + c.toString(), '');
+        return this[EMPTY] ? this[EMPTY].toString() :
+          this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
       },
       unmount() {
-        if (empty) {
-          return emptyElement.unmount();
+        if (this[EMPTY]) {
+          return this[EMPTY].unmount();
         }
-        childComponents.forEach(c => c.unmount());
+        this[CHILD_COMPONENTS].forEach(c => c.unmount());
         return undefined;
       },
       render,
-    });
+    };
+
+    result[CHILD_COMPONENTS] = childComponents;
+    result[EMPTY] = empty;
+    return result;
   }
 
   let childComponents;
@@ -62,13 +69,13 @@ function render(attrs, context) {
     return updateState([], emptyElement.call(this));
   }
 
-  if (!attrs.length !== !this.empty) {
+  if (!attrs.length === !this.empty()) {
     const result = render(attrs, context);
     insertAll(result.children(), this.firstChild());
     this.unmount();
     return updateState.call(this, result.childComponents(), result.empty());
   }
-  if (this.empty) {
+  if (this.empty()) {
     return this;
   }
 
@@ -96,11 +103,12 @@ function render(attrs, context) {
   toUpdate = currentChildren;
   const updateingAttrs = attrs.slice(0, currentChildren.length);
   const toAdd = attrs.slice(currentChildren.length);
-  const nextSibling = this.lastChild().nextSibling;
-  const parent = this.lastChild().parentNode;
+  const nextSibling = this.lastChild() && this.lastChild().nextSibling;
+  const parent = this.lastChild() && this.lastChild().parentNode;
   childComponents = updateingAttrs.map(updateChild);
   const newComponents = toAdd.map(([r, a]) => r(a, context));
-  insertAll(newComponents.map(x => x.children()), nextSibling, parent);
+  const newNodes = newComponents.reduce((r, x) => r.concat([...x.children()]), []);
+  parent && insertAll(newNodes, nextSibling, parent); // eslint-disable-line
   return updateState.call(this, childComponents.concat(newComponents));
 }
 

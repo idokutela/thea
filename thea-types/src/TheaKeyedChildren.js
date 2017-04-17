@@ -7,6 +7,9 @@ import emptyElement from './emptyElement';
 import flatten from './util/flatten';
 import forEach from './util/forEach';
 
+const NODE_MAP = Symbol.for('node mape');
+const CHILD_COMPONENTS = Symbol.for('child components');
+
 function render(attrs, context) {
   const reconcileChild = function reconcileChild(oldMap, parentNode) {
     return reconcileChildInt.bind(undefined, oldMap, parentNode);
@@ -15,19 +18,20 @@ function render(attrs, context) {
   // Normalise children
   let newChildren = attrs;
   if (!Array.isArray(attrs)) {
-    newChildren = [[TheaText, attrs]];
-  } else if (attrs.length && !Array.isArray(attrs[0])) {
+    newChildren = [attrs];
+  } else if (attrs.length && typeof attrs[0] === 'function') {
     newChildren = [attrs];
   } else if (attrs.length === 0) {
     newChildren = [[emptyElement]];
   }
+  newChildren = newChildren.map(t => (Array.isArray(t) ? t : [TheaText, String(t)]));
 
   // Deal with the two special cases
   if (!this) return mount(newChildren);
   if (!this.unmount) return revive(this, newChildren);
 
   // Reconcile children
-  const { childComponents, nodeMap } = attrs.reduce(
+  const { childComponents, nodeMap } = newChildren.reduce(
     reconcileChild(this.nodeMap(), this.firstChild() && this.firstChild().parentNode),
       { childComponents: [], nodeMap: new Map(), front: this.firstChild() },
   );
@@ -36,17 +40,20 @@ function render(attrs, context) {
   return updateState.call(this, nodeMap, childComponents);
 
   function updateState(nodeMap, childComponents) { // eslint-disable-line
-    return Object.assign(this || {}, {
-      nodeMap() { return nodeMap; },
-      firstChild() { return childComponents[0].firstChild(); },
-      lastChild() { return childComponents[childComponents.length - 1].lastChild(); },
-      children() { return flatten(childComponents.map(c => c.children())); },
-      toString() { return childComponents.reduce((r, c) => r + c.toString(), ''); },
+    const result = this || {
+      nodeMap() { return this[NODE_MAP]; },
+      firstChild() { return this[CHILD_COMPONENTS][0].firstChild(); },
+      lastChild() { return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild(); },
+      children() { return flatten(this[CHILD_COMPONENTS].map(c => c.children())); },
+      toString() { return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), ''); },
       unmount() {
-        childComponents.forEach(c => c.unmount());
+        this[CHILD_COMPONENTS].forEach(c => c.unmount());
       },
       render,
-    });
+    };
+    result[NODE_MAP] = nodeMap;
+    result[CHILD_COMPONENTS] = childComponents;
+    return result;
   }
 
   function revive(node, children) {
