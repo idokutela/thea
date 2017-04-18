@@ -1,0 +1,11 @@
+.container {
+  composes: flexRow  borderBottom from "../../atoms.css";
+  border-bottom-color: #ccc;
+}
+
+.input {
+  composes: padding from "../../atoms.css";
+  border: none;
+  font: inherit;
+  flex: 1;
+}

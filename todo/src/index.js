@@ -1,8 +1,19 @@
 import view from 'thea';
-import Item from './components/Item';
 import './style.css';
+import TodoList from './components/TodoList';
+import Input from './components/TodoInput';
 
-const render = ({item = 'hello'}) => <Item item={item} />
+const items = [{
+  item: 'Eat burger',
+  id: 'burger',
+}, {
+  item: 'Work softly',
+  id: 'soft',
+}];
+
+const render = () => (
+  <TodoList items={items}/>
+);
 
 const r = view(render);
 const inst = r({ item: 'Hello' });

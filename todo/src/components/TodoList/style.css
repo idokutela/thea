@@ -1,0 +1,29 @@
+.container {
+  width: 100vw;
+  height: 100vh;
+  background: #fefefe;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.todos {
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (min-width: 32rem) {
+  .container {
+    width: 32rem;
+  }
+}
+
+@media (min-height: 42rem) {
+  .container {
+    height: 42rem;
+  }
+}
