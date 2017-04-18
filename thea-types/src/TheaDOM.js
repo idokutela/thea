@@ -10,8 +10,6 @@ import camelToDash from './dom/camelToDash';
 import forEach from './util/forEach';
 import isInBrowser from './dom/isInBrowser';
 
-export const NAMESPACE = Symbol('dom namespace');
-
 const toStyleMap = o => toMap(entries(o));
 
 const tags = new Map();
@@ -20,6 +18,7 @@ const NODE = Symbol('node');
 const ATTRS = Symbol('attrs');
 const STYLES = Symbol('styles');
 const CHILD_COMPONENT = Symbol('child component');
+export const NAMESPACE = Symbol('dom namespace');
 
 let toStringNoDOM = () => { throw new Error('Please import domKnowledge to use TheaDOM outside of the DOM.'); };
 let voidElements = new Set();
@@ -73,12 +72,12 @@ const updateStyleForNode = node =>
 const updateAttributeForNode = node =>
   (key, newVal, oldVal) => updateAttributeForNodeInt(node, key, newVal, oldVal);
 
-const hasNameSpace = tag => (tag === 'SVG') && 'http://www.w3.org/2000/svg';
+const hasNameSpace = tag => (tag === 'svg') && 'http://www.w3.org/2000/svg';
 
 const copy = x => Object.assign({}, x);
 
 function makeTag(tag) {
-  const tagName = tag.toUpperCase();
+  const tagName = tag.toLowerCase();
 
   const ns = hasNameSpace(tagName);
   const updateAttrs = !ns ? copy :
@@ -94,7 +93,7 @@ function makeTag(tag) {
     delete attrs.ref;
     const styleMap = toStyleMap(style);
     const attrMap = toLowerCaseMap(attrs);
-    const childContext = attrs.xmlns ?
+    context = attrs.xmlns ?
       Object.assign({}, context, { [NAMESPACE]: attrs.xmlns }) :
       Object.assign({}, context);
 
@@ -105,7 +104,7 @@ function makeTag(tag) {
     }
 
     if (!this) {
-      const childComponent = children.length ? TheaView(children, childContext) : undefined;
+      const childComponent = children.length ? TheaView(children, context) : undefined;
       let node;
       if (isInBrowser) {
         node = context[NAMESPACE] ?
@@ -128,7 +127,7 @@ function makeTag(tag) {
 
     if (!this.unmount) {
       if (process.env.NODE_ENV !== 'production') {
-        if (this.nodeType !== ELEMENT || this.tagName !== tagName) {
+        if (this.nodeType !== ELEMENT || this.tagName.toLowerCase() !== tagName) {
           throw new Error(`Expected an element node of type ${tagName}`);
         }
 
@@ -139,7 +138,7 @@ function makeTag(tag) {
       }
       let childComponent;
       if (children.length) {
-        childComponent = TheaView.call(this.firstChild, children, childContext);
+        childComponent = TheaView.call(this.firstChild, children, context);
       }
       forEach(attrMap.entries(), ([k, v]) => {
         const name = getEventName(k);
@@ -155,7 +154,7 @@ function makeTag(tag) {
     updateEntries(this.styleMap(), styleMap, updateStyle);
     const childComponent = this.childComponent();
     if (childComponent) {
-      childComponent.render(children, childContext);
+      childComponent.render(children, context);
     }
     return updateState.call(this, node, attrMap, styleMap, childComponent);
 
@@ -203,4 +202,4 @@ function makeTag(tag) {
   return render;
 }
 
-export default tag => tags.get(tag.toUpperCase()) || makeTag(tag);
+export default tag => tags.get(tag.toLowerCase()) || makeTag(tag);

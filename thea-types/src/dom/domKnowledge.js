@@ -5,8 +5,8 @@ import reduce from '../util/reduce';
 import camelToDash from './camelToDash';
 
 export { default as voidElements } from './voidElements';
-export const rawTextElements = new Set(['SCRIPT', 'STYLE']);
-export const escapableRawTextElements = new Set(['TEXTAREA', 'TITLE']);
+export const rawTextElements = new Set(['script', 'style']);
+export const escapableRawTextElements = new Set(['textarea', 'title']);
 
 export const booleanAttributes = new Set(['allowfullscreen',
   'async', 'autofocus', 'autoplay', 'checked', 'compact',

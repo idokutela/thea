@@ -20,6 +20,6 @@ describe('TheaDOM tests', function () {
       onClick: clickHandler,
     };
     const component = div(attrs);
-    component.toString().should.equal('<DIV class="Bah&lt;"contenteditable><BR/></DIV>');
+    component.toString().should.equal('<div class="Bah&lt;"contenteditable><br/></div>');
   });
 });

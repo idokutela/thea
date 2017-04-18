@@ -263,6 +263,7 @@ describe('TheaDOM tests', function () {
     const attrs = { children: [[rect, rattrs]] };
     const s = svg(attrs);
     s.firstChild().getAttribute('xmlns').should.equal('http://www.w3.org/2000/svg');
+    s.firstChild().namespaceURI.should.equal('http://www.w3.org/2000/svg');
     s.firstChild().firstChild.namespaceURI.should.equal('http://www.w3.org/2000/svg');
   });
 });

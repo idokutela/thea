@@ -1,3 +1,3 @@
-module.exports = new Set(['AREA', 'BASE', 'BR', 'COL', 'EMBED',
-  'HR', 'IMG', 'INPUT', 'KEYGEN', 'LINK', 'MENUITEM',
-  'META', 'PARAM', 'SOURCE', 'TRACK', 'WBR']);
+module.exports = new Set(['area', 'base', 'br', 'col', 'embed',
+  'hr', 'img', 'input', 'keygen', 'link', 'menuitem',
+  'meta', 'param', 'source', 'track', 'wbr']);
