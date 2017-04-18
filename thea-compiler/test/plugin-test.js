@@ -13,8 +13,8 @@ describe('plugin tests', function () {
     <Mary.Elisabeth x={12} {...y} key='2'>
       Test me! <file />
     </Mary.Elisabeth>;`, babelOptions).code;
-    const expectedCode = `var ${text} = require('thea/types/${text}'),
-    ${dom} = require('thea/types/${dom}');
+    const expectedCode = `var ${text} = require('thea/types/${text}').default,
+    ${dom} = require('thea/types/${dom}').default;
 
 a = [Mary.Elisabeth, Object.assign({ x: 12, children: [[${text}, 'Test me! '], [${dom}('file'), {}]]
 }, y), '2'];`;
@@ -50,7 +50,7 @@ a = [Mary.Elisabeth, Object.assign({ x: 12, children: [[Foo.${text}, 'Test me! '
     <Mary.Elisabeth x={12} {...y} key='2'>
       Test me! <file />
     </Mary.Elisabeth>;`, babelOptions).code;
-    const expectedCode = `var Foo = require('thea/types');
+    const expectedCode = `var Foo = require('thea/types').default;
 
 a = [Mary.Elisabeth, Object.assign({ x: 12, children: [[Foo.${text}, 'Test me! '], [Foo.${dom}('file'), {}]]
 }, y), '2'];`;
@@ -84,8 +84,8 @@ a = [Mary.Elisabeth, Object.assign({ x: 12, children: [[Foo.${text}, 'Test me! '
     </Mary.Elisabeth>;`, babelOptions).code;
     const expectedCode = `var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var ${text} = require('thea/types/${text}'),
-    ${dom} = require('thea/types/${dom}');
+var ${text} = require('thea/types/${text}').default,
+    ${dom} = require('thea/types/${dom}').default;
 
 a = [Mary.Elisabeth, _extends({ x: 12, children: [[${text}, 'Test me! '], [${dom}('file'), {}]]
 }, y), '2'];`;
@@ -100,7 +100,7 @@ a = [Mary.Elisabeth, _extends({ x: 12, children: [[${text}, 'Test me! '], [${dom
     };
 
     const code = transform('<comment>Hello {fool}</comment>', babelOptions).code;
-    const expectedCode = `var ${comment} = require("thea/types/${comment}");
+    const expectedCode = `var ${comment} = require("thea/types/${comment}").default;
 
 [${comment}, ["Hello ", fool]];`;
 
@@ -135,17 +135,16 @@ a = [Mary.Elisabeth, _extends({ x: 12, children: [[${text}, 'Test me! '], [${dom
   </each>
 </view>
 )`;
-    const expectedCode = `var TheaText = require("thea/types/TheaText"),
-    TheaExpression = require("thea/types/TheaExpression"),
-    TheaComment = require("thea/types/TheaComment"),
-    TheaView = require("thea/types/TheaView"),
-    TheaDOM = require("thea/types/TheaDOM"),
-    TheaKeyedChildren = require("thea/types/TheaKeyedChildren");
+    const expectedCode = `var TheaText = require("thea/types/TheaText").default,
+    TheaComment = require("thea/types/TheaComment").default,
+    TheaView = require("thea/types/TheaView").default,
+    TheaDOM = require("thea/types/TheaDOM").default,
+    TheaKeyedChildren = require("thea/types/TheaKeyedChildren").default;
 
 [TheaView, [[TheaComment, ["Copyright (c) ", new Date().getFullYear(), " Manufacturably"]], [TheaDOM("h1"), { "class": "Major", children: [[TheaText, "Index of articles"]]
-}], [TheaKeyedChildren, [...attrs.articles].map((_item, _key) => ((article, key) => [TheaView, [[TheaDOM("h2"), { id: article.id, children: [[TheaExpression, article.title]]
+}], [TheaKeyedChildren, [...attrs.articles].map((_item, _key) => ((article, key) => [TheaView, [[TheaDOM("h2"), { id: article.id, children: [[TheaKeyedChildren, article.title]]
 }], [TheaDOM("h3"), {
-  children: [[TheaText, "Published "], [TheaExpression, article.date]]
+  children: [[TheaText, "Published "], [TheaKeyedChildren, article.date]]
 }], [TheaKeyedChildren, article.isLong ? [TheaView, [[TheaText, "Long article:"], [LongForm, Object.assign({}, article)]], 0] : [TheaView, [[TheaText, "Short article:"], [ShortForm, { content: article.content, url: article.url }]], 1]], [TheaText, "Thanks for coming!"]], key])(_item, ((a, i) => a.id)(_item, _key)))]]];`;
     transform(code, babelOptions).code.should.equal(expectedCode);
   });

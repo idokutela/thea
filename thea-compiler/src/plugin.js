@@ -10,7 +10,11 @@ import viewProcessor from './viewProcessor';
 const componentPath = 'thea/types';
 
 const makeSubPath = type => `${componentPath}/${type}`;
-const makeRequire = t => path => t.callExpression(t.identifier('require'), [t.stringLiteral(path)]);
+const makeRequire = t => path =>
+  t.memberExpression(
+    t.callExpression(t.identifier('require'), [t.stringLiteral(path)]),
+    t.identifier('default'),
+  );
 const makeAssignment = t => (lhs, rhs) => t.variableDeclarator(lhs, rhs);
 const makeId = t => x => t.identifier(x);
 
