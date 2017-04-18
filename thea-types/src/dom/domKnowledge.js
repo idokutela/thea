@@ -18,28 +18,36 @@ export const booleanAttributes = new Set(['allowfullscreen',
   'required', 'reversed', 'scoped', 'seamless', 'selected', 'sortable',
   'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible']);
 
-const concatStyleItem = (r, [k, v]) => `${r};${camelToDash(k)}:${String(v)}`;
+const concatStyleItem = (r, [k, v]) => (r ? `${r};${camelToDash(k)}:${escape(String(v))}` : `${camelToDash(k)}:${escape(String(v))}`);
 const styleToString = styles => (styles.size ?
   `style="${reduce(styles.entries(), concatStyleItem, '')}"` : '');
 
 const concatS = (s, t) => ((s.length && s[s.length - 1] !== '"') ? `${s} ${t}` : s + t);
 
-function concatAttrString(r, k, v) {
+function concatAttrString(r, [k, v]) {
   if (getEventName(k)) return r;
-  if (booleanAttributes.has(k)) {
+  /* if (booleanAttributes.has(k)) {
     return (v !== undefined) ? concatS(r, k) : r;
-  }
+  }*/
+  if (v === '') return concatS(r, k);
   return concatS(r, `${k}="${escape(String(v))}"`);
 }
-const attrsToString = attrs => reduce(attrs.entries, concatAttrString, '');
+const attrsToString = attrs => reduce(attrs.entries(), concatAttrString, '');
 
-export function toStringNoDOM(tagName, attrMap, styleMap, childString) {
+export function toStringNoDOM(tagName, attrMap = new Map(), styleMap = new Map(), childString = '') {
   const styles = styleToString(styleMap);
   const attrs = styles ? concatS(attrsToString(attrMap), styles) : attrsToString(attrMap);
   if (voidElements.has(tagName)) {
-    return `<${tagName} ${attrs}/>`;
+    if (process.env.NODE_ENV !== 'production') {
+      if (childString.length) {
+        throw new Error(`The tag ${tagName} may not have children.`);
+      }
+    }
+    return attrs ? `<${tagName} ${attrs}/>` : `<${tagName}/>`;
   }
-  return `<${tagName} ${attrs}>${childString}</${tagName}>`;
+  return attrs ?
+    `<${tagName} ${attrs}>${childString}</${tagName}>` :
+    `<${tagName}>${childString}</${tagName}>`;
 }
 
 setToString(toStringNoDOM);
