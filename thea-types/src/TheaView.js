@@ -1,27 +1,30 @@
 import { TRANSPARENT } from './constants';
 import flatten from './util/flatten';
 
+const CHILD_COMPONENTS = Symbol.for('child components');
 function render(attrs = [], context) {
   function renderComponent(childComponents) {
-    return Object.assign(this || {}, {
+    const retval = this || {
       firstChild() {
-        return childComponents[0].firstChild();
+        return this[CHILD_COMPONENTS][0].firstChild();
       },
       lastChild() {
-        return childComponents[childComponents.length - 1].lastChild();
+        return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
       },
       children() {
-        return flatten(childComponents.map(c => c.children()));
+        return flatten(this[CHILD_COMPONENTS].map(c => c.children()));
       },
       toString() {
-        return childComponents.reduce((r, c) => r + c.toString(), '');
+        return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
       },
       unmount() {
-        childComponents.forEach(c => c.unmount());
+        this[CHILD_COMPONENTS].forEach(c => c.unmount());
       },
-      childComponents() { return childComponents; },
+      childComponents() { return this[CHILD_COMPONENTS]; },
       render,
-    });
+    };
+    retval[CHILD_COMPONENTS] = childComponents;
+    return retval;
   }
 
   if (process.env.NODE_ENV !== 'production') {

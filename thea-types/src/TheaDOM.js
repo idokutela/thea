@@ -1,12 +1,22 @@
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-param-reassign, no-use-before-define */
 
 import toLowerCaseMap from './util/toLowerCaseMap';
 import updateEntries from './util/updateEntries';
+import { toMap, entries } from './util/entries';
 import TheaView from './TheaView';
 import { insertAll, remove } from './dom/domUtils';
 import { ELEMENT } from './constants';
+import camelToDash from './dom/camelToDash';
+import forEach from './util/forEach';
+
+const toStyleMap = o => toMap(entries(o));
 
 const tags = new Map();
+
+const NODE = Symbol('node');
+const ATTRS = Symbol('attrs');
+const STYLES = Symbol('styles');
+const CHILD_COMPONENT = Symbol('child component');
 
 let toStringNoDOM = () => { throw new Error('Please import domKnowledge to use TheaDOM outside of the DOM.'); };
 let voidElements = new Set();
@@ -17,15 +27,21 @@ export function setToString(toString) {
 
 export const getEventName = key => (key.startsWith('on') ? key.substr(2) : undefined);
 
+// The only reason to have voidElements is to check whether the node is allowed
+// children. We don’t do this check anyway in production.
 if (process.env.NODE_ENV !== 'production') {
-  voidElements = require('./voidElements'); // eslint-disable-line
+  voidElements = require('./dom/voidElements'); // eslint-disable-line
 }
 
 function updateStyleForNodeInt(node, key, newVal, oldVal) {
   if (!node) return;
   if (newVal === oldVal || String(newVal) === String(oldVal)) return;
-  if (newVal) node.style.key = String(newVal);
-  node.style.key = null;
+  if (newVal) {
+    node.style[key] = String(newVal);
+    return;
+  }
+
+  node.style.removeProperty(camelToDash(key));
 }
 
 function updateAttributeForNodeInt(node, key, newVal, oldVal) {
@@ -61,35 +77,12 @@ function makeTag(tag) {
   const isVoid = voidElements.has(tagName);
 
   function render(attrs = {}, context) {
-    function updateState(node, attrMap, styleMap, childComponent) {
-      return Object.assign(this || {}, {
-        firstChild() { return node; },
-        lastChild() { return node; },
-        children() { return [node]; },
-        toString() {
-          return node ?
-            node.outerHTML :
-            toStringNoDOM(tagName, attrMap, styleMap, childComponent && childComponent.toString());
-        },
-        attrMap() { return attrMap; },
-        styleMap() { return styleMap; },
-        unmount() {
-          if (!node) return;
-          [...attrMap.entries()].forEach(([k, v]) => {
-            const hname = getEventName(k);
-            if (hname) node.removeEventListener(hname, v);
-          });
-          childComponent && childComponent.unmount(); // eslint-disable-line
-          remove(node);
-        },
-        render,
-      });
-    }
-
-    const { children = [], style } = attrs;
+    attrs = Object.assign({}, attrs); // copy so as not to mess with attrs
+    const { children = [], style = {}, ref = () => {} } = attrs;
     delete attrs.children;
     delete attrs.style;
-    const styleMap = toLowerCaseMap(style);
+    delete attrs.ref;
+    const styleMap = toStyleMap(style);
     const attrMap = toLowerCaseMap(attrs);
 
     if (process.env.NODE_ENV !== 'production') {
@@ -115,14 +108,13 @@ function makeTag(tag) {
       return updateState(node, attrMap, styleMap, childComponent);
     }
 
-    if (!this.umount) {
+    if (!this.unmount) {
       if (process.env.NODE_ENV !== 'production') {
-        if (this.nodeType !== ELEMENT || this.tagname !== tagName) {
+        if (this.nodeType !== ELEMENT || this.tagName !== tagName) {
           throw new Error(`Expected an element node of type ${tagName}`);
         }
 
         // Assume attributes match
-
         if (this.firstChild && !children.length) {
           throw new Error('Mismatch in children!');
         }
@@ -131,16 +123,61 @@ function makeTag(tag) {
       if (children.length) {
         childComponent = TheaView.call(this.firstChild, children, context);
       }
+      forEach(attrMap.entries(), ([k, v]) => {
+        const name = getEventName(k);
+        name && this.addEventListener(name, v); // eslint-disable-line
+      });
       return updateState(this, attrMap, styleMap, childComponent);
     }
 
     const node = this.firstChild();
     const updateStyle = updateStyleForNode(node);
     const updateAttribute = updateAttributeForNode(node);
-    updateEntries(attrMap, this.attrMap(), updateAttribute);
-    updateEntries(styleMap, this.styleMap(), updateStyle);
-    const childComponent = TheaView.call(this.childComponent(), children, context);
+    updateEntries(this.attrMap(), attrMap, updateAttribute);
+    updateEntries(this.styleMap(), styleMap, updateStyle);
+    const childComponent = this.childComponent();
+    if (childComponent) {
+      childComponent.render(children, context);
+    }
     return updateState.call(this, node, attrMap, styleMap, childComponent);
+
+    function updateState(node, attrMap, styleMap, childComponent) {     // eslint-disable-line
+      const retval = this || {
+        firstChild() { return this[NODE]; },
+        lastChild() { return this[NODE]; },
+        children() { return [this[NODE]]; },
+        toString() {
+          return this[NODE] ?
+            this[NODE].outerHTML :
+            toStringNoDOM(
+              tagName, this[ATTRS], this[STYLES],
+              this[CHILD_COMPONENT] && this[CHILD_COMPONENT].toString(),
+            );
+        },
+        attrMap() { return this[ATTRS]; },
+        styleMap() { return this[STYLES]; },
+        childComponent() { return this[CHILD_COMPONENT]; },
+        unmount() {
+          if (!this[NODE]) return;
+          [...this[ATTRS].entries()].forEach(([k, v]) => {
+            const hname = getEventName(k);
+            if (hname) node.removeEventListener(hname, v);
+          });
+          this[CHILD_COMPONENT] && this[CHILD_COMPONENT].unmount(); // eslint-disable-line
+          remove(this[NODE]);
+        },
+        render,
+      };
+
+      retval[NODE] = node;
+      retval[ATTRS] = attrMap;
+      retval[STYLES] = styleMap;
+      retval[CHILD_COMPONENT] = childComponent;
+
+      if (ref) ref(retval);
+
+      return retval;
+    }
   }
   /* eslint-enable no-param-reassign */
 

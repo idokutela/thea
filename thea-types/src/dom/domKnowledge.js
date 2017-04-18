@@ -2,6 +2,7 @@ import escape from 'escape-html';
 import voidElements from './voidElements';
 import { setToString, getEventName } from '../TheaDOM';
 import reduce from '../util/reduce';
+import camelToDash from './camelToDash';
 
 export { default as voidElements } from './voidElements';
 export const rawTextElements = new Set(['SCRIPT', 'STYLE']);
@@ -16,9 +17,6 @@ export const booleanAttributes = new Set(['allowfullscreen',
   'noshade', 'novalidate', 'nowrap', 'open', 'pauseonexit', 'readonly',
   'required', 'reversed', 'scoped', 'seamless', 'selected', 'sortable',
   'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible']);
-
-/* http://stackoverflow.com/questions/8955533/javascript-jquery-split-camelcase-string-and-add-hyphen-rather-than-space */
-export const camelToDash = s => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
 const concatStyleItem = (r, [k, v]) => `${r};${camelToDash(k)}:${String(v)}`;
 const styleToString = styles => (styles.size ?
