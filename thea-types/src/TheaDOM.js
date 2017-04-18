@@ -10,6 +10,8 @@ import camelToDash from './dom/camelToDash';
 import forEach from './util/forEach';
 import isInBrowser from './dom/isInBrowser';
 
+export const NAMESPACE = Symbol('dom namespace');
+
 const toStyleMap = o => toMap(entries(o));
 
 const tags = new Map();
@@ -71,20 +73,30 @@ const updateStyleForNode = node =>
 const updateAttributeForNode = node =>
   (key, newVal, oldVal) => updateAttributeForNodeInt(node, key, newVal, oldVal);
 
+const hasNameSpace = tag => (tag === 'SVG') && 'http://www.w3.org/2000/svg';
+
+const copy = x => Object.assign({}, x);
 
 function makeTag(tag) {
   const tagName = tag.toUpperCase();
 
+  const ns = hasNameSpace(tagName);
+  const updateAttrs = !ns ? copy :
+    attrs => Object.assign({ xmlns: ns }, attrs);
+
   const isVoid = voidElements.has(tagName);
 
-  function render(attrs = {}, context) {
-    attrs = Object.assign({}, attrs); // copy so as not to mess with attrs
+  function render(attrs = {}, context = {}) {
+    attrs = updateAttrs(attrs); // copy so as not to mess with attrs
     const { children = [], style = {}, ref = () => {} } = attrs;
     delete attrs.children;
     delete attrs.style;
     delete attrs.ref;
     const styleMap = toStyleMap(style);
     const attrMap = toLowerCaseMap(attrs);
+    const childContext = attrs.xmlns ?
+      Object.assign({}, context, { [NAMESPACE]: attrs.xmlns }) :
+      Object.assign({}, context);
 
     if (process.env.NODE_ENV !== 'production') {
       if (isVoid && children.length) {
@@ -93,8 +105,13 @@ function makeTag(tag) {
     }
 
     if (!this) {
-      const childComponent = children.length ? TheaView(children, context) : undefined;
-      const node = isInBrowser ? document.createElement(tagName) : undefined;
+      const childComponent = children.length ? TheaView(children, childContext) : undefined;
+      let node;
+      if (isInBrowser) {
+        node = context[NAMESPACE] ?
+          document.createElementNS(context[NAMESPACE], tagName) :
+          document.createElement(tagName);
+      }
       if (node) {
         if (childComponent) {
           const docFrag = document.createDocumentFragment();
@@ -122,7 +139,7 @@ function makeTag(tag) {
       }
       let childComponent;
       if (children.length) {
-        childComponent = TheaView.call(this.firstChild, children, context);
+        childComponent = TheaView.call(this.firstChild, children, childContext);
       }
       forEach(attrMap.entries(), ([k, v]) => {
         const name = getEventName(k);
@@ -138,7 +155,7 @@ function makeTag(tag) {
     updateEntries(this.styleMap(), styleMap, updateStyle);
     const childComponent = this.childComponent();
     if (childComponent) {
-      childComponent.render(children, context);
+      childComponent.render(children, childContext);
     }
     return updateState.call(this, node, attrMap, styleMap, childComponent);
 
