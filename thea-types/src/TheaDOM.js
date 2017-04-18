@@ -18,6 +18,7 @@ const NODE = Symbol('node');
 const ATTRS = Symbol('attrs');
 const STYLES = Symbol('styles');
 const CHILD_COMPONENT = Symbol('child component');
+export const NAMESPACE = Symbol('dom namespace');
 
 let toStringNoDOM = () => { throw new Error('Please import domKnowledge to use TheaDOM outside of the DOM.'); };
 let voidElements = new Set();
@@ -71,20 +72,30 @@ const updateStyleForNode = node =>
 const updateAttributeForNode = node =>
   (key, newVal, oldVal) => updateAttributeForNodeInt(node, key, newVal, oldVal);
 
+const hasNameSpace = tag => (tag === 'svg') && 'http://www.w3.org/2000/svg';
+
+const copy = x => Object.assign({}, x);
 
 function makeTag(tag) {
-  const tagName = tag.toUpperCase();
+  const tagName = tag.toLowerCase();
+
+  const ns = hasNameSpace(tagName);
+  const updateAttrs = !ns ? copy :
+    attrs => Object.assign({ xmlns: ns }, attrs);
 
   const isVoid = voidElements.has(tagName);
 
-  function render(attrs = {}, context) {
-    attrs = Object.assign({}, attrs); // copy so as not to mess with attrs
+  function render(attrs = {}, context = {}) {
+    attrs = updateAttrs(attrs); // copy so as not to mess with attrs
     const { children = [], style = {}, ref = () => {} } = attrs;
     delete attrs.children;
     delete attrs.style;
     delete attrs.ref;
     const styleMap = toStyleMap(style);
     const attrMap = toLowerCaseMap(attrs);
+    context = attrs.xmlns ?
+      Object.assign({}, context, { [NAMESPACE]: attrs.xmlns }) :
+      Object.assign({}, context);
 
     if (process.env.NODE_ENV !== 'production') {
       if (isVoid && children.length) {
@@ -94,7 +105,12 @@ function makeTag(tag) {
 
     if (!this) {
       const childComponent = children.length ? TheaView(children, context) : undefined;
-      const node = isInBrowser ? document.createElement(tagName) : undefined;
+      let node;
+      if (isInBrowser) {
+        node = context[NAMESPACE] ?
+          document.createElementNS(context[NAMESPACE], tagName) :
+          document.createElement(tagName);
+      }
       if (node) {
         if (childComponent) {
           const docFrag = document.createDocumentFragment();
@@ -111,7 +127,7 @@ function makeTag(tag) {
 
     if (!this.unmount) {
       if (process.env.NODE_ENV !== 'production') {
-        if (this.nodeType !== ELEMENT || this.tagName !== tagName) {
+        if (this.nodeType !== ELEMENT || this.tagName.toLowerCase() !== tagName) {
           throw new Error(`Expected an element node of type ${tagName}`);
         }
 
@@ -186,4 +202,4 @@ function makeTag(tag) {
   return render;
 }
 
-export default tag => tags.get(tag.toUpperCase()) || makeTag(tag);
+export default tag => tags.get(tag.toLowerCase()) || makeTag(tag);

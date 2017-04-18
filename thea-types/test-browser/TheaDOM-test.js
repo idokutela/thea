@@ -102,13 +102,13 @@ describe('TheaDOM tests', function () {
       tabindex: '-1',
       children: [[renderChildP, 'bang']],
     };
-    component.render(newAttrs, 'fry');
+    component.render(newAttrs, { a: 'fry' });
     [...component.children()].length.should.equal(1);
     component.firstChild().should.equal(component.lastChild());
     component.firstChild().tagName.should.equal('DIV');
     [...component.firstChild().childNodes].should.eql([components[0].firstChild()]);
     components[0].attrs.should.equal('bang');
-    components[0].context.should.equal('fry');
+    components[0].context.should.eql({ a: 'fry' });
     components.length.should.equal(1);
     component.firstChild().getAttribute('class').should.eql('Bee bah');
     component.firstChild().tabIndex.should.equal(-1);
@@ -254,5 +254,16 @@ describe('TheaDOM tests', function () {
     document.body.appendChild(component.firstChild());
     component.unmount();
     [...document.body.childNodes].length.should.equal(0);
+  });
+
+  it('should mount svg nodes correctly', function () {
+    const svg = DOM('svg');
+    const rect = DOM('rect');
+    const rattrs = { x: '0', y: '0', width: '10', height: '10' };
+    const attrs = { children: [[rect, rattrs]] };
+    const s = svg(attrs);
+    s.firstChild().getAttribute('xmlns').should.equal('http://www.w3.org/2000/svg');
+    s.firstChild().namespaceURI.should.equal('http://www.w3.org/2000/svg');
+    s.firstChild().firstChild.namespaceURI.should.equal('http://www.w3.org/2000/svg');
   });
 });
