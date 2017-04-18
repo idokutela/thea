@@ -1,0 +1,28 @@
+{
+  "name": "thea-view",
+  "version": "0.0.0",
+  "description": "The base VDOM -> view transformer",
+  "main": "index.js",
+  "author": "Alexander Kahle",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.24.0",
+    "babel-core": "^6.24.0",
+    "babel-preset-env": "^1.4.0",
+    "eslint": "^3.18.0",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-react": "^6.10.3",
+    "jsdom": "^9.12.0",
+    "mocha": "^3.2.0",
+    "should": "^11.2.1",
+    "sinon": "^2.1.0"
+  },
+  "scripts": {
+    "clean": "rmtrash lib",
+    "test": "mocha --opts test-node/mocha.opts",
+    "test:watch": "yarn test -- --watch"
+  },
+  "dependencies": {}
+}
