@@ -8,6 +8,7 @@ import { insertAll, remove } from './dom/domUtils';
 import { ELEMENT } from './constants';
 import camelToDash from './dom/camelToDash';
 import forEach from './util/forEach';
+import isInBrowser from './dom/isInBrowser';
 
 const toStyleMap = o => toMap(entries(o));
 
@@ -93,7 +94,7 @@ function makeTag(tag) {
 
     if (!this) {
       const childComponent = children.length ? TheaView(children, context) : undefined;
-      const node = document ? document.createElement(tagName) : undefined;
+      const node = isInBrowser ? document.createElement(tagName) : undefined;
       if (node) {
         if (childComponent) {
           const docFrag = document.createDocumentFragment();
