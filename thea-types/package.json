@@ -21,6 +21,7 @@
   },
   "scripts": {
     "clean": "rmtrash lib",
+    "build": "yarn run clean && babel -d lib src",
     "test-browser": "mocha --opts test-browser/mocha.opts",
     "test-node": "mocha --opts test-node/mocha.opts",
     "test": "yarn test-browser && yarn test-node",
