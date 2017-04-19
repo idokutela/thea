@@ -2,6 +2,7 @@ import view from 'thea';
 
 import Input from '../TodoInput';
 import Item from '../Item';
+import TodoZero from '../TodoZero';
 import styles from './style.css';
 
 /* eslint-disable no-undef */
@@ -30,11 +31,18 @@ export const render = ({
   return (
     <div class={styles.container}>
       <Input {...inputHandlers} />
-      <ul class={styles.todos}>
-        <each of={items.map(makeItem)} keyedBy={item => item.id}>
-          <Item {...item} />
-        </each>
-      </ul>
+      <branch>
+        <if test={items.length}>
+          <ul class={styles.todos}>
+            <each of={items.map(makeItem)} keyedBy={item => item.id}>
+              <Item {...item} />
+            </each>
+          </ul>
+        </if>
+        <default>
+          <TodoZero />
+        </default>
+      </branch>
     </div>
   );
 };
