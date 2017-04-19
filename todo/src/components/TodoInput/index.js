@@ -1,11 +1,13 @@
-/* eslint-disable react/no-unknown-property, react/react-in-jsx-scope,
-   react/jsx-filename-extension, react/prop-types */
 import view from 'thea';
+import IconButton from '../IconButton';
+import DoneAll from '../Icons/DoneAll';
 import styles from './style.css';
+import Input from '../Input';
 
-export const render = () => (
+export const render = ({ addItem = () => {}, markAllAsDone = () => {} }) => (
   <div class={styles.container}>
-    <input type="text" class={styles.input} placeholder="Add todo" />
+    <IconButton onclick={markAllAsDone}><DoneAll /></IconButton>
+    <Input placeholder="Add todo" oninput={addItem} value="" />
   </div>
 );
 

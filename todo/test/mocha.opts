@@ -3,4 +3,4 @@
 --colors
 --reporter spec
 --recursive
-test/**/*-test.js
+src/**/*-test.js

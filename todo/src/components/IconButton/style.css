@@ -1,0 +1,22 @@
+.button {
+  width: 24px;
+  height: 24px;
+  position: relative;
+}
+
+.button:focus {
+  outline: none;
+  color: #26f;
+}
+
+.button + .button {
+  margin-left: 0.5rem
+}
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  top: -10000000px;
+  left: -1000000px;
+  opacity: 0.01;
+}

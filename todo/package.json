@@ -6,6 +6,7 @@
   "author": "Alexander Kahle",
   "license": "MIT",
   "dependencies": {
+    "classnames": "^2.2.5",
     "thea": "^0.0.3"
   },
   "devDependencies": {

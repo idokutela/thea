@@ -1,11 +1,29 @@
 .container {
-  composes: flexRow  borderBottom from "../../atoms.css";
+  composes: flexRow borderBottom padding from "../../atoms.css";
   border-bottom-color: #ccc;
+  background: #222;
+  color: #fefefe;
 }
 
 .input {
-  composes: padding from "../../atoms.css";
   border: none;
+  padding: 0;
   font: inherit;
   flex: 1;
+  margin: 0 0.75rem;
+  color: inherit;
+  background: none;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  height: 1.5rem;
+}
+
+.input:focus {
+  outline: none;
+  border-bottom: 1px solid currentColor;
+}
+
+.button {
+  width: 24px;
+  height: 24px;
 }

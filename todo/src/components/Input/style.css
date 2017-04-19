@@ -1,0 +1,46 @@
+.container {
+  flex: 1;
+  display: flex;
+  margin: 0 0.75rem;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+
+}
+.isFocussed {
+  border-bottom: 1px solid currentColor;
+}
+.inputcontainer {
+  flex: 1;
+  position: relative;
+  height: 1.5rem;
+}
+.input {
+  position: absolute;
+  border: none;
+  padding: 0;
+  font: inherit;
+  margin: 0;
+  color: inherit;
+  background: none;
+  width: calc(100% - 0.75rem);
+  height: 1.5rem;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input:focus {
+  outline: none;
+/*  border-bottom: 1px solid currentColor; */
+}
+
+.input:disabled {
+  text-decoration: line-through;
+  color: inherit;
+  opacity: 0.4;
+}
+.input::placeholder {
+  color: #444;
+}

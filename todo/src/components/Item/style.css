@@ -1,27 +1,56 @@
 .container {
   composes: flexRow padding borderBottom from "../../atoms.css";
+  position: relative;
 }
 
 .item {
   padding: 0;
   margin: 0;
   flex: 1;
+  align-self: stretch;
+  position: relative;
+}
+
+.todo {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  margin: 0;
+  margin: 0 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .button {
-  font: inherit;
-  color: inherit;
-  background: inherit;
-  border: none;
-  padding: 0;
-  margin: 0;
-  text-align: inherit;
-  width: auto;
-  width: 24px;
-  height: 24px;
-  margin-right: 0.5rem;
+  color: #888;
 }
 
-.button:last-child {
-  margin-right: 0;
+.updownButton {
+  composes: button;
+  position: absolute;
+  border-radius: 1000px;
+  border: 1px solid #eee;
+
+  background: #fefefe;
+
+  top: -18px;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 36px;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checked {
+  color: #222;
+}
+
+.unchecked {
+  color: #ccc;
 }
