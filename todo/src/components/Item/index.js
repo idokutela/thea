@@ -37,7 +37,6 @@ export const render = ({
           </IconButton>
         </span>
       </if>
-      <default><span /></default>
     </branch>
   </li>
 );

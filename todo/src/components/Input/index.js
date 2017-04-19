@@ -103,9 +103,6 @@ export default makeStateful(
             <Clear />
           </IconButton>
         </if>
-        <default>
-          <span />
-        </default>
       </branch>
     </span>
   );

@@ -10,6 +10,14 @@ import forEach from './util/forEach';
 const NODE_MAP = Symbol.for('node mape');
 const CHILD_COMPONENTS = Symbol.for('child components');
 
+const noNullChildren = t => (t !== null) && (t !== undefined) &&
+    (t !== true) && (t !== false);
+
+const normaliseChild = (t) => {
+  if (Array.isArray(t)) return t;
+  return [TheaText, String(t)];
+};
+
 function render(attrs, context) {
   const reconcileChild = function reconcileChild(oldMap, parentNode) {
     return reconcileChildInt.bind(undefined, oldMap, parentNode);
@@ -21,10 +29,13 @@ function render(attrs, context) {
     newChildren = [attrs];
   } else if (attrs.length && typeof attrs[0] === 'function') {
     newChildren = [attrs];
-  } else if (attrs.length === 0) {
+  }
+  newChildren = newChildren
+    .filter(noNullChildren)
+    .map(normaliseChild);
+  if (newChildren.length === 0) {
     newChildren = [[emptyElement]];
   }
-  newChildren = newChildren.map(t => (Array.isArray(t) ? t : [TheaText, String(t)]));
 
   // Deal with the two special cases
   if (!this) return mount(newChildren);

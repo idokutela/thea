@@ -1,6 +1,6 @@
 import escape from 'escape-html';
 import voidElements from './voidElements';
-import { setToString, getEventName } from '../TheaDOM';
+import { setToString, getCapturedEventName, getBubbledEventName } from '../TheaDOM';
 import reduce from '../util/reduce';
 import camelToDash from './camelToDash';
 
@@ -25,7 +25,7 @@ const styleToString = styles => (styles.size ?
 const concatS = (s, t) => ((s.length && s[s.length - 1] !== '"') ? `${s} ${t}` : s + t);
 
 function concatAttrString(r, [k, v]) {
-  if (getEventName(k)) return r;
+  if (getBubbledEventName(k) || getCapturedEventName(k)) return r;
   /* if (booleanAttributes.has(k)) {
     return (v !== undefined) ? concatS(r, k) : r;
   }*/

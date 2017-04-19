@@ -146,7 +146,7 @@ describe('TheaDOM tests', function () {
     const attrs = { ref: n => (node = n) };
 
     const component = div(attrs);
-    component.should.eql(node);
+    node.should.eql(component.firstChild());
   });
 
   it('should revive correctly', function () {
@@ -172,11 +172,11 @@ describe('TheaDOM tests', function () {
     const div = DOM('div');
     let node;
     let clicked = false;
-    const listener = e => (e.target === node.firstChild() && (clicked = !clicked));
+    const listener = e => (e.target === node) && (clicked = !clicked);
     const attrs = { ref: n => (node = n), onclick: listener };
 
     div(attrs);
-    node.firstChild().click();
+    node.click();
     clicked.should.be.true();
   });
 
@@ -184,12 +184,12 @@ describe('TheaDOM tests', function () {
     const div = DOM('div');
     let node;
     let clicked = false;
-    const listener = e => (e.target === node.firstChild() && (clicked = !clicked));
+    const listener = e => e.target === node && (clicked = !clicked);
     const attrs = { ref: n => (node = n) };
 
-    div(attrs);
-    node.render({ onclick: listener });
-    node.firstChild().click();
+    const component = div(attrs);
+    component.render({ onclick: listener });
+    node.click();
     clicked.should.be.true();
   });
 
@@ -211,9 +211,9 @@ describe('TheaDOM tests', function () {
     const listener = e => (e.target === node.firstChild() && (clicked = !clicked));
     const attrs = { ref: n => (node = n), onclick: listener };
 
-    div(attrs);
-    node.render({});
-    node.firstChild().click();
+    const component = div(attrs);
+    component.render({});
+    node.click();
     clicked.should.be.false();
   });
 
@@ -222,13 +222,13 @@ describe('TheaDOM tests', function () {
     let node;
     let clicked1 = false;
     let clicked2 = false;
-    const listener1 = e => (e.target === node.firstChild() && (clicked1 = !clicked1));
-    const listener2 = e => (e.target === node.firstChild() && (clicked2 = !clicked2));
+    const listener1 = e => e.target && (clicked1 = !clicked1);
+    const listener2 = e => e.target && (clicked2 = !clicked2);
     const attrs = { ref: n => (node = n), onclick: listener1 };
 
-    div(attrs);
-    node.render({ onclick: listener2 });
-    node.firstChild().click();
+    const component = div(attrs);
+    component.render({ onclick: listener2 });
+    node.click();
     clicked1.should.be.false();
     clicked2.should.be.true();
   });
@@ -237,12 +237,12 @@ describe('TheaDOM tests', function () {
     const div = DOM('div');
     let node;
     let clicked = false;
-    const listener = e => (e.target === node.firstChild() && (clicked = !clicked));
+    const listener = e => e.target && (clicked = !clicked);
     const attrs = { ref: n => (node = n), onclick: listener };
 
-    div(attrs);
-    const child = node.firstChild();
-    node.unmount();
+    const component = div(attrs);
+    const child = node;
+    component.unmount();
     child.click();
     clicked.should.be.false();
   });
@@ -265,5 +265,47 @@ describe('TheaDOM tests', function () {
     s.firstChild().getAttribute('xmlns').should.equal('http://www.w3.org/2000/svg');
     s.firstChild().namespaceURI.should.equal('http://www.w3.org/2000/svg');
     s.firstChild().firstChild.namespaceURI.should.equal('http://www.w3.org/2000/svg');
+  });
+
+  it('should capture events', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let focussed = false;
+    let node;
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: () => (focussed = true) };
+    p(pattrs);
+    node.focus();
+    focussed.should.be.true();
+  });
+
+  it('shoud add capturers on revived nodes', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let focussed = false;
+    let node;
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]] };
+    const parent = p(pattrs).firstChild();
+    pattrs.capturefocus = () => (focussed = true);
+    node.focus();
+    focussed.should.be.false();
+    p.call(parent, pattrs);
+    node.focus();
+    focussed.should.be.true();
+  });
+
+  it('should delete captured event listeners on unmount', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let focussed = false;
+    let node;
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: () => (focussed = true) };
+
+    const component = p(pattrs);
+    component.unmount();
+    node.focus();
+    focussed.should.be.false();
   });
 });

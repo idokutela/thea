@@ -356,6 +356,28 @@ describe('TheaKeyedChildren tests', function () {
     components[2].context.should.equal(' the slap');
   });
 
+  it('should render a falsy child as empty elements', function () {
+    const component = render(null);
+    component.firstChild().textContent.should.equal('%%');
+    component.firstChild().nodeType.should.equal(window.Node.COMMENT_NODE);
+    render.call(component, false);
+    component.firstChild().textContent.should.equal('%%');
+    component.firstChild().nodeType.should.equal(window.Node.COMMENT_NODE);
+    render.call(component, true);
+    component.firstChild().textContent.should.equal('%%');
+    component.firstChild().nodeType.should.equal(window.Node.COMMENT_NODE);
+    render.call(component, undefined);
+    component.firstChild().textContent.should.equal('%%');
+    component.firstChild().nodeType.should.equal(window.Node.COMMENT_NODE);
+  });
+
+  it('should filter out the no-render children', function () {
+    const component = render([null, 'hello']);
+    component.firstChild().textContent.should.equal('hello');
+    component.firstChild().should.equal(component.lastChild());
+    component.firstChild().nodeType.should.equal(window.Node.TEXT_NODE);
+  });
+
   it('should unmount correctly', function () {
     const children = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
     const component = render(children, ' the sloop');

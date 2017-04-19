@@ -27,7 +27,8 @@ export function setToString(toString) {
   toStringNoDOM = toString;
 }
 
-export const getEventName = key => (key.startsWith('on') ? key.substr(2) : undefined);
+export const getBubbledEventName = key => (key.startsWith('on') ? key.substr(2) : undefined);
+export const getCapturedEventName = key => (key.startsWith('capture') ? key.substr(7) : undefined);
 
 // The only reason to have voidElements is to check whether the node is allowed
 // children. We don’t do this check anyway in production.
@@ -49,15 +50,22 @@ function updateStyleForNodeInt(node, key, newVal, oldVal) {
 function updateAttributeForNodeInt(node, key, newVal, oldVal) {
   if (!node) return;
   if (newVal === oldVal) return;
-  const eventName = getEventName(key);
-  if (eventName) {
-    oldVal && node.removeEventListener(eventName, oldVal); // eslint-disable-line
+  const bubbledEventName = getBubbledEventName(key);
+  if (bubbledEventName) {
+    oldVal && node.removeEventListener(bubbledEventName, oldVal); // eslint-disable-line
     if (newVal) {
-      node.addEventListener(eventName, newVal);
+      node.addEventListener(bubbledEventName, newVal);
     }
     return;
   }
-
+  const capturedEventName = getCapturedEventName(key);
+  if (capturedEventName) {
+    oldVal && node.removeEventListener(capturedEventName, oldVal); // eslint-disable-line
+    if (newVal) {
+      node.addEventListener(capturedEventName, newVal, true);
+    }
+    return;
+  }
   if (String(newVal) === String(oldVal)) return;
 
   if (newVal !== undefined) {
@@ -141,8 +149,10 @@ function makeTag(tag) {
         childComponent = TheaView.call(this.firstChild, children, context);
       }
       forEach(attrMap.entries(), ([k, v]) => {
-        const name = getEventName(k);
+        let name = getBubbledEventName(k);
         name && this.addEventListener(name, v); // eslint-disable-line
+        name = getCapturedEventName(k);
+        name && this.addEventListener(name, v, true); // eslint-disable-line
       });
       return updateState(this, attrMap, styleMap, childComponent);
     }
@@ -177,7 +187,7 @@ function makeTag(tag) {
         unmount() {
           if (!this[NODE]) return;
           [...this[ATTRS].entries()].forEach(([k, v]) => {
-            const hname = getEventName(k);
+            const hname = getBubbledEventName(k) || getCapturedEventName(k);
             if (hname) node.removeEventListener(hname, v);
           });
           this[CHILD_COMPONENT] && this[CHILD_COMPONENT].unmount(); // eslint-disable-line
@@ -191,7 +201,7 @@ function makeTag(tag) {
       retval[STYLES] = styleMap;
       retval[CHILD_COMPONENT] = childComponent;
 
-      if (ref) ref(retval);
+      if (ref) ref(retval[NODE]);
 
       return retval;
     }
