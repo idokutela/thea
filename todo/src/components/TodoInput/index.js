@@ -3,11 +3,13 @@ import IconButton from '../IconButton';
 import DoneAll from '../Icons/DoneAll';
 import styles from './style.css';
 import Input from '../Input';
+import DeleteSweep from '../Icons/DeleteSweep';
 
-export const render = ({ addItem = () => {}, markAllAsDone = () => {} }) => (
+export const render = ({ noItems, addItem = () => {}, markAllAsDone = () => {}, deleteAll = () => {} }) => (
   <div class={styles.container}>
-    <IconButton onclick={markAllAsDone}><DoneAll /></IconButton>
+    <IconButton onclick={markAllAsDone} disabled={noItems || undefined}><DoneAll /></IconButton>
     <Input placeholder="Add todo" oninput={addItem} value="" />
+    <IconButton onclick={deleteAll} disabled={noItems || undefined}><DeleteSweep /></IconButton>
   </div>
 );
 

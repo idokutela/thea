@@ -14,6 +14,7 @@ export const render = ({
   deleteItem = () => {},
   addItem = () => {},
   markAllAsDone = () => {},
+  deleteAll = () => {},
 }) => {
   const makeItem = (item, index) => Object.assign({}, item, {
     index,
@@ -26,11 +27,12 @@ export const render = ({
   const inputHandlers = {
     addItem: value => addItem(value),
     markAllAsDone,
+    deleteAll,
   };
 
   return (
     <div class={styles.container}>
-      <Input {...inputHandlers} />
+      <Input {...inputHandlers} noItems={!items.length} />
       <branch>
         <if test={items.length}>
           <ul class={styles.todos}>

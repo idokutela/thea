@@ -17,8 +17,8 @@ function render(attrs, context) {
       attrs.ref(ref);
     }
     const val = attrs.value || '';
-    if (ref.firstChild().value !== val) {
-      ref.firstChild().value = val; // eslint-disable-line
+    if (ref.value !== val) {
+      ref.value = val; // eslint-disable-line
     }
   };
   return base.call(this, theAttrs, context);

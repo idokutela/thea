@@ -42,7 +42,12 @@ export default function makeStateUpdaters(update) {
       {}, state, { items: state.items.map(x => Object.assign(x, { done: true })) },
     ),
   );
+  const deleteAll = () => update(
+    state => Object.assign(
+      {}, state, { items: [] },
+    ),
+  );
   return {
-    swapItems, updateItem, toggleDone, deleteItem, addItem, markAllAsDone,
+    swapItems, updateItem, toggleDone, deleteItem, addItem, markAllAsDone, deleteAll,
   };
 }

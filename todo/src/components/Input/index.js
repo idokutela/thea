@@ -48,11 +48,11 @@ export default makeStateful(
 }) => {
   const accept = () => {
     showButtons && oninput && oninput(value);
-    input && input.firstChild().focus();
+    input && input.focus();
     update((s) => { delete s.currentValue; return s; });
   };
   const cancel = () => {
-    input && input.firstChild().focus();
+    input && input.focus();
     update((s) => { delete s.currentValue; return s; });
   };
   const handleKeyDown = (e) => {
@@ -64,7 +64,7 @@ export default makeStateful(
   };
   const handleFocus = () => update(s => Object.assign(s, focussed));
   const handleBlur = () => parent && update &&
-    setTimeout(() => !isChildFocussed(parent.firstChild()) &&
+    setTimeout(() => !isChildFocussed(parent) &&
       update(s => Object.assign(s, notfocussed)), 50);
 
   return (
@@ -80,7 +80,7 @@ export default makeStateful(
           onkeydown={handleKeyDown}
           oninput={() =>
             input && update(s => Object.assign(s, {
-              currentValue: input.firstChild().value }))}
+              currentValue: input.value }))}
           onfocus={handleFocus}
           onblur={handleBlur}
           disabled={disabled}
