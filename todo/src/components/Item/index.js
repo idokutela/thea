@@ -23,7 +23,7 @@ export const render = ({
     >
       <Done />
     </IconButton>
-    <Input value={value} disabled={done || undefined} oninput={updateItem} />
+    <Input value={value} disabled={done || undefined} onInput={updateItem} />
     <IconButton
       onClick={deleteItem} class={styles.button}
     >

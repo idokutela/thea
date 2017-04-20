@@ -30,4 +30,10 @@ module.exports = {
     new HtmlWebpackPlugin(),
     new ExtractTextPlugin('[name].bundle.css'),
   ],
+  resolve: {
+    modules: [
+      'node_modules',
+      path.resolve(__dirname, 'src'),
+    ],
+  },
 };

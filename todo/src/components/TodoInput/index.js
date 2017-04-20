@@ -5,10 +5,15 @@ import styles from './style.css';
 import Input from '../Input';
 import DeleteSweep from '../Icons/DeleteSweep';
 
-export const render = ({ noItems, addItem = () => {}, markAllAsDone = () => {}, deleteAll = () => {} }) => (
+export const render = ({
+  noItems,
+  addItem = () => {},
+  markAllAsDone = () => {},
+  deleteAll = () => {},
+}) => (
   <div class={styles.container}>
     <IconButton onclick={markAllAsDone} disabled={noItems || undefined}><DoneAll /></IconButton>
-    <Input placeholder="Add todo" oninput={addItem} value="" />
+    <Input placeholder="Add todo" onInput={addItem} value="" />
     <IconButton onclick={deleteAll} disabled={noItems || undefined}><DeleteSweep /></IconButton>
   </div>
 );

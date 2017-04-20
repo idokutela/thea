@@ -1,7 +1,9 @@
 import view from 'thea';
+
+import TodoList from 'components/TodoList';
+import makeStateful from 'wrappers/StatefulComponent';
+
 import './style.css';
-import TodoList from './components/TodoList';
-import makeStateful from './wrappers/StatefulComponent';
 
 import makeStateUpdaters from './stateManager';
 

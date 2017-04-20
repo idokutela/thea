@@ -1,109 +1,56 @@
+/* eslint-disable no-unused-expressions, no-param-reassign */
 import view from 'thea';
 import classnames from 'classnames';
 
-import IconButton from '../IconButton';
-import Done from '../Icons/Done';
-import Clear from '../Icons/Clear';
+import IconButton from 'components/IconButton';
+import Done from 'components/Icons/Done';
+import Clear from 'components/Icons/Clear';
+import ControlledInput from 'components/ControlledInput';
+import { compose } from 'util/functional';
+import makeStateful from 'wrappers/StatefulComponent';
+
 import styles from './style.css';
-import makeStateful from '../../wrappers/StatefulComponent';
-import ControlledInput from '../ControlledInput';
 
-const stateToProps = (attrs, {
-  input, update, currentValue, parent,
-  isFocussed,
-}) => Object.assign(
-  {},
-  attrs,
-  { input, update, parent, isFocussed },
-  (currentValue !== undefined && currentValue !== attrs.value)
-    ? { value: currentValue, showButtons: currentValue.trim() !== attrs.value } : {},
-);
+import { initialState, stateToProps } from './state';
 
-const isDescendant = parent => function desc(node) {
-  if (node === parent) return true;
-  if (!node) return false;
-  return desc(node.parentNode);
-};
 
-const isChildFocussed = parent => isDescendant(parent)(document.activeElement);
+import makeFocusHandlers from './focusEvents';
+import makeInputHandlers from './inputEvents';
+import makeSetRef from './refs';
 
-const focussed = { isFocussed: true };
-const notfocussed = { isFocussed: false };
-const initialState = notfocussed;
-
-/* eslint-disable no-param-reassign, no-unused-expressions */
-export default makeStateful(
-  initialState,
-  stateToProps,
-)(view(({
-  disabled,
-  showButtons,
-  value,
-  placeholder,
-  input,
-  update,
-  parent,
-  oninput,
-  isFocussed,
-}) => {
-  const accept = () => {
-    showButtons && oninput && oninput(value);
-    input && input.focus();
-    update((s) => { delete s.currentValue; return s; });
-  };
-  const cancel = () => {
-    input && input.focus();
-    update((s) => { delete s.currentValue; return s; });
-  };
-  const handleKeyDown = (e) => {
-    switch (e.keyCode) {
-      case 13: accept(); e.preventDefault(); break;
-      case 27: cancel(); e.preventDefault(); break;
-      default:
-    }
-  };
-  const handleFocus = () => update(s => Object.assign(s, focussed));
-  const handleBlur = () => parent && update &&
-    setTimeout(() => !isChildFocussed(parent) &&
-      update(s => Object.assign(s, notfocussed)), 50);
+export const render = ({ disabled, value, placeholder, onInput, state }) => {
+  const { valueChanged, isFocussed } = state;
+  const { focus, blur } = makeFocusHandlers(state);
+  const { accept, reject, handleInput, handleKeyDown } = makeInputHandlers(state, onInput);
+  const setRef = makeSetRef(state);
 
   return (
     <span
       class={classnames(styles.container, isFocussed && styles.isFocussed)}
-      ref={el => parent !== el && update(s => Object.assign(s, { parent: el }))}
+      ref={setRef('parent')} captureFocus={focus} captureBlur={blur}
     >
       <span class={styles.inputcontainer}>
         <ControlledInput
-          type="text"
-          class={styles.input} value={value} placeholder={placeholder}
-          ref={el => input !== el && update(s => Object.assign(s, { input: el }))}
-          onkeydown={handleKeyDown}
-          oninput={() =>
-            input && update(s => Object.assign(s, {
-              currentValue: input.value }))}
-          onfocus={handleFocus}
-          onblur={handleBlur}
+          type="text" class={styles.input} value={value} placeholder={placeholder}
+          ref={setRef('input')} onkeydown={handleKeyDown} oninput={handleInput}
           disabled={disabled}
         />
       </span>
       <branch>
-        <if test={showButtons}>
-          <IconButton
-            label={'Accept'}
-            onclick={accept}
-            onblur={handleBlur}
-          >
+        <if test={valueChanged}>
+          <IconButton label={'Accept'} onclick={accept} >
             <Done />
           </IconButton>
-          <IconButton
-            label={'Cancel'}
-            onClick={cancel}
-            onblur={handleBlur}
-          >
+          <IconButton label={'Cancel'} onClick={reject} >
             <Clear />
           </IconButton>
         </if>
       </branch>
     </span>
   );
-}));
+};
+
+export default compose(
+  makeStateful(initialState, stateToProps),
+  view,
+)(render);
