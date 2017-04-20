@@ -20,6 +20,7 @@ describe('TheaKeyedChildren tests', function () {
     }
     if (!this) {
       const node = document.createElement('P');
+      node.setAttribute('tabIndex', 0);
       node.textContent = attrs + context;
       components.push(makeChild(node));
       return components[components.length - 1];
@@ -57,6 +58,7 @@ describe('TheaKeyedChildren tests', function () {
       const nodes = Array.from({ length: numNodes })
         .map(() => {
           const node = document.createElement('SPAN');
+          node.setAttribute('tabIndex', 0);
           node.textContent = attrs + context;
           return node;
         });
@@ -228,6 +230,16 @@ describe('TheaKeyedChildren tests', function () {
     components[1].context.should.equal(' the slap');
     components[2].attrs.should.equal('bar');
     components[2].context.should.equal(' the slap');
+  });
+
+  it('should preserve focus when moving a keyed child', function () {
+    const children = [[renderChildSpan, 'hello', 'a'], [renderChildP, 'fraidy', 'b'], [renderChildP, 'bar', 'c']];
+    const component = render(children, ' the sloop');
+    [...component.children()].forEach(n => document.body.appendChild(n));
+    document.body.firstChild.focus();
+    const updatedAttrs = [[renderChildP, 'fraidy', 'b'], [renderChildSpan, 'hello', 'a'], [renderChildP, 'bar', 'c']];
+    render.call(component, updatedAttrs, ' the slap').should.equal(component);
+    document.activeElement.should.equal(document.body.firstChild.nextSibling);
   });
 
   it('should insert a new component in the correct place', function () {

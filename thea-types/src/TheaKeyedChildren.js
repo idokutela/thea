@@ -6,6 +6,7 @@ import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
 import flatten from './util/flatten';
 import forEach from './util/forEach';
+import isInBrowser from './dom/isInBrowser';
 
 const NODE_MAP = Symbol.for('node mape');
 const CHILD_COMPONENTS = Symbol.for('child components');
@@ -107,6 +108,7 @@ function render(attrs, context) {
     let prevChild = oldMap.get(childIndex);
     let newChild;
     let shouldMove;
+    const activeNode = isInBrowser && document.activeElement;
 
     if (!prevChild || prevChild.render !== renderChild) {
       newChild = renderChild(attrs, context);
@@ -122,6 +124,7 @@ function render(attrs, context) {
     }
     if (shouldMove && parentNode) {
       insertAll(newChild.children(), front, parentNode);
+      activeNode && activeNode.focus(); // eslint-disable-line
     }
     nodeMap.set(childIndex, newChild);
     oldMap.delete(childIndex);
