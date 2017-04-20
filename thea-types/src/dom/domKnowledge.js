@@ -25,6 +25,7 @@ const styleToString = styles => (styles.size ?
 const concatS = (s, t) => ((s.length && s[s.length - 1] !== '"') ? `${s} ${t}` : s + t);
 
 function concatAttrString(r, [k, v]) {
+  if (v === undefined) return r;
   if (getBubbledEventName(k) || getCapturedEventName(k)) return r;
   /* if (booleanAttributes.has(k)) {
     return (v !== undefined) ? concatS(r, k) : r;

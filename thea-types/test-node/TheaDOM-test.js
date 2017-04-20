@@ -16,6 +16,7 @@ describe('TheaDOM tests', function () {
     const attrs = {
       class: 'Bah<',
       CONTENTEDITABLE: '',
+      toBeIgnored: undefined,
       children: [[br, {}]],
       onClick: clickHandler,
     };
