@@ -295,17 +295,38 @@ describe('TheaDOM tests', function () {
     focussed.should.be.true();
   });
 
-  it('should delete captured event listeners on unmount', function () {
+  it('shoud update capturers', function () {
     const p = DOM('p');
     const input = DOM('input');
     let focussed = false;
     let node;
     const iattrs = { ref: el => (node = el) };
-    const pattrs = { children: [[input, iattrs]], capturefocus: () => (focussed = true) };
-
-    const component = p(pattrs);
-    component.unmount();
+    const pattrs = { children: [[input, iattrs]] };
+    const parent = p(pattrs).firstChild();
+    pattrs.capturefocus = () => (focussed = true);
     node.focus();
     focussed.should.be.false();
+    p.call(parent, pattrs);
+    node.focus();
+    focussed.should.be.true();
+  });
+
+  it('should delete captured event listeners on unmount', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let node;
+    let focussed1 = false;
+    let focussed2 = false;
+    const listener1 = e => e.target && (focussed1 = !focussed1);
+    const listener2 = e => e.target && (focussed2 = !focussed2);
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: listener1 };
+
+    const component = p(pattrs);
+    const pattrs2 = { children: [[input, iattrs]], capturefocus: listener2 };
+    component.render(pattrs2);
+    node.focus();
+    focussed1.should.be.false();
+    focussed2.should.be.true();
   });
 });
