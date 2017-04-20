@@ -51,21 +51,16 @@ function updateAttributeForNodeInt(node, key, newVal, oldVal) {
   if (!node) return;
   if (newVal === oldVal) return;
   const bubbledEventName = getBubbledEventName(key);
-  if (bubbledEventName) {
-    oldVal && node.removeEventListener(bubbledEventName, oldVal); // eslint-disable-line
-    if (newVal) {
-      node.addEventListener(bubbledEventName, newVal);
-    }
-    return;
-  }
   const capturedEventName = getCapturedEventName(key);
-  if (capturedEventName) {
-    oldVal && node.removeEventListener(capturedEventName, oldVal); // eslint-disable-line
+  const eventName = bubbledEventName || capturedEventName;
+  if (eventName) {
+    oldVal && node.removeEventListener(eventName, oldVal, !!capturedEventName); // eslint-disable-line
     if (newVal) {
-      node.addEventListener(capturedEventName, newVal, true);
+      node.addEventListener(eventName, newVal, !!capturedEventName);
     }
     return;
   }
+
   if (String(newVal) === String(oldVal)) return;
 
   if (newVal !== undefined) {
@@ -149,10 +144,10 @@ function makeTag(tag) {
         childComponent = TheaView.call(this.firstChild, children, context);
       }
       forEach(attrMap.entries(), ([k, v]) => {
-        let name = getBubbledEventName(k);
-        name && this.addEventListener(name, v); // eslint-disable-line
-        name = getCapturedEventName(k);
-        name && this.addEventListener(name, v, true); // eslint-disable-line
+        const bname = getBubbledEventName(k);
+        const cname = getCapturedEventName(k);
+        const name = bname || cname;
+        name && this.addEventListener(name, v, !!cname); // eslint-disable-line
       });
       return updateState(this, attrMap, styleMap, childComponent);
     }
@@ -187,8 +182,10 @@ function makeTag(tag) {
         unmount() {
           if (!this[NODE]) return;
           [...this[ATTRS].entries()].forEach(([k, v]) => {
-            const hname = getBubbledEventName(k) || getCapturedEventName(k);
-            if (hname) node.removeEventListener(hname, v);
+            const bname = getBubbledEventName(k);
+            const cname = getCapturedEventName(k);
+            const name = bname || cname;
+            name && node.removeEventListener(name, v, !!cname); // eslint-disable-line
           });
           this[CHILD_COMPONENT] && this[CHILD_COMPONENT].unmount(); // eslint-disable-line
           remove(this[NODE]);
