@@ -4,6 +4,7 @@
     "react/react-in-jsx-scope": "off",
     "react/jsx-filename-extension": "off",
     "react/prop-types": "off",
-    "import/no-unresolved": "off"
+    "import/no-unresolved": "off",
+    "import/extensions": "off"
   }
 }

@@ -17,7 +17,7 @@ export const render = ({
   deleteAll = () => {},
 }) => {
   const makeItem = (item, index) => Object.assign({}, item, {
-    index,
+    showSwitch: index !== items.length - 1,
     toggleDone: () => toggleDone(index),
     updateItem: value => updateItem(index, value),
     swapItems: () => swapItems(index),

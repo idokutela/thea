@@ -12,7 +12,7 @@ export const render = ({
   deleteItem = () => {},
   updateItem = () => {},
   swapItems = () => {},
-  index,
+  showSwitch,
   done }) =>
 (
   <li class={styles.container}>
@@ -30,7 +30,7 @@ export const render = ({
       <Delete />
     </IconButton>
     <branch>
-      <if test={index}>
+      <if test={showSwitch}>
         <span class={styles.updownButton}>
           <IconButton onclick={swapItems}>
             <SwapVert />

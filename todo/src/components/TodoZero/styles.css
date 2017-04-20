@@ -11,8 +11,14 @@
   font-weight: 200;
 }
 .awesome{
-  font-size: 5rem;
+  font-size: 15vw;
   font-weight: 800;
   flex: 1;
   padding-top: 1.5rem;
+}
+
+@media (min-width: 32rem) {
+  .awesome {
+    font-size: 5rem;
+  }
 }

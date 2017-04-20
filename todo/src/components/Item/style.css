@@ -36,7 +36,7 @@
 
   background: #fefefe;
 
-  top: -18px;
+  top: calc(100% - 18px);
   left: calc(50% - 18px);
   width: 36px;
   height: 36px;

@@ -1,6 +1,6 @@
 .container {
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background: #fefefe;
   display: flex;
   flex-direction: column;
@@ -16,14 +16,15 @@
   overflow-x: hidden;
 }
 
-@media (min-width: 32rem) {
+@media (min-width: 30rem) {
   .container {
-    width: 32rem;
+    width: 30rem;
   }
 }
 
 @media (min-height: 42rem) {
   .container {
     height: 42rem;
+    min-height: 0;
   }
 }

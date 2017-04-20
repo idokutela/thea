@@ -9,6 +9,8 @@ export function compose(...fs) {
   };
 }
 
+export const get = key => x => x[key];
+
 export const set = (key, value) => x => Object.assign(x, { [key]: value });
 
 export const unset = key => (x) => { delete x[key]; return x; };
