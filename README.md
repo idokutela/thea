@@ -8,9 +8,6 @@ It’s lightning fast and stupidly easy.
 // Imports: don't worry about these for now.
 import thea from 'thea';
 import mountOnNode from 'thea-mount';
-import connect from 'thea-wrapper-redux';
-
-import store from '<somewhere>'; // Suppose we have some redux store
 
 /*
  * Components are defined by rendering functions,
