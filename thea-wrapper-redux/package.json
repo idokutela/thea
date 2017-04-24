@@ -1,6 +1,6 @@
 {
   "name": "thea-wrapper-redux",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Transforms thea components to have state managed by redux",
   "main": "index.js",
   "author": "Alexander Kahle",
