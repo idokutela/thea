@@ -6,7 +6,7 @@ The simplest gist:
 
 ```js
 import view from 'thea';
-import wrap from 'thea-wrapper-redux';
+import wrap from 'thea-wrapper-redux/wrapper';
 import { createStore } from 'redux';
 
 const INCREMENT = 'INCREMENT';
@@ -41,7 +41,7 @@ A fancier version:
 
 ```js
 import view from 'thea';
-import wrap from 'thea-wrapper-redux';
+import wrap from 'thea-wrapper-redux/wrapper';
 import { createStore } from 'redux';
 
 const INCREMENT = 'INCREMENT';
@@ -87,7 +87,8 @@ you can use the Store component:
 
 ```js
 import view from 'thea';
-import wrap, { Store } from 'thea-wrapper-redux';
+import wrap from 'thea-wrapper-redux/wrapper';
+import Store from 'thea-wrapper-redux/Store';
 import { createStore } from 'redux';
 
 const INCREMENT = 'INCREMENT';

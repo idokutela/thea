@@ -1,7 +1,7 @@
 import sinon from 'sinon';
 import { createStore } from 'redux';
 
-import wrap, { STORE } from '../reduxWrapper';
+import wrap, { STORE } from '../wrapper';
 
 describe('Wrapper tests', function () {
   it('should be a function', function () {
