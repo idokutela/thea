@@ -32,7 +32,7 @@ const render = ({ value, dispatch }) => (
   </view>
 );
 
-const Component = createStore(undefined, store)(wrap(render));
+const Component = wrap(undefined, store)(view(render));
 
 export default Component;
 ```
@@ -77,7 +77,7 @@ const render = ({ value, dispatch }) => (
   </view>
 );
 
-const Component = createStore(stateToAttrs, store)(wrap(render));
+const Component = wrap(stateToAttrs, store)(view(render));
 
 export default Component;
 ```
@@ -114,7 +114,7 @@ const render = ({ value, dispatch }) => (
   </view>
 );
 
-const Component = createStore()(wrap(render));
+const Component = wap()(view(render));
 
 const App = view(() => (
   <Store store={store}>
