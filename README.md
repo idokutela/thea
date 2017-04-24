@@ -90,3 +90,10 @@ StatelessCounter.call(activeCounter2, { value: 3 });
 // Now the node shows: The counter value is '3'
 
 ```
+
+For non-trivial examples, checkout
+
+ - [plus minus times](https://github.com/idokutela/plusminustimes) : a fun little
+   game written with thea and redux.
+ - [thea-todo](https://github.com/idokutela/thea-todo) : the canonical todo app
+   redone in thea.
