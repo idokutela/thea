@@ -5,7 +5,9 @@
   "main": "index.js",
   "author": "Alexander Kahle",
   "license": "MIT",
-  "peerDependencies": {},
+  "peerDependencies": {
+    "redux": "^3.6.0",    
+  },
   "devDependencies": {
     "babel-cli": "^6.24.0",
     "babel-core": "^6.24.1",
