@@ -28,7 +28,11 @@ button {
   text-align: inherit;
   width: auto;
 }
-
+footer {
+  text-align: right;
+  align-self: flex-end;
+  padding: 1.5rem;
+}
 
 .hero {
   width: 100vw;
