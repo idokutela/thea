@@ -5,9 +5,7 @@
   "main": "index.js",
   "author": "Alexander Kahle",
   "license": "MIT",
-  "peerDependencies": {
-    "redux": "^3.6.0"
-  },
+  "peerDependencies": {},
   "devDependencies": {
     "babel-cli": "^6.24.0",
     "babel-core": "^6.24.1",
@@ -19,6 +17,7 @@
     "eslint-plugin-react": "^6.10.3",
     "jsdom": "^9.12.0",
     "mocha": "^3.2.0",
+    "redux": "^3.6.0",
     "should": "^11.2.1",
     "sinon": "^2.1.0"
   },
@@ -29,6 +28,6 @@
     "test:watch": "yarn test -- --watch"
   },
   "dependencies": {
-    "redux": "^3.6.0"
+    "thea": "^0.0.8"
   }
 }

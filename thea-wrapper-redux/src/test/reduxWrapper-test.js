@@ -1,15 +1,16 @@
 import sinon from 'sinon';
-import wrap from '../reduxWrapper';
+import { createStore } from 'redux';
+
+import wrap, { STORE } from '../reduxWrapper';
 
 describe('Wrapper tests', function () {
   it('should be a function', function () {
     wrap.should.be.a.Function();
-    wrap(() => {})(() => {}).should.be.a.Function();
+    wrap()(() => {}).should.be.a.Function();
   });
 
   it('should cry if the transformer is not passed a function', function () {
-    (() => wrap(() => {})({})).should.throw();
-    (() => wrap({})(() => {})).should.throw();
+    (() => wrap()({})).should.throw();
   });
 
   it('should render with the initial state', function () {
@@ -20,8 +21,10 @@ describe('Wrapper tests', function () {
       rval.attrs = theAttrs;
       return rval;
     }
+    const state = { val: 'Hello' };
+    const store = createStore(() => state);
 
-    const r = wrap(() => ({ val: 'Hello' }))(render);
+    const r = wrap(undefined, store)(render);
     const comp = r({ a: 'zoop' }, { b: 'bloop' });
     comp.attrs.should.eql({ a: 'zoop', val: 'Hello' });
   });
@@ -35,12 +38,12 @@ describe('Wrapper tests', function () {
       return rval;
     });
 
+    const state = { val: 'Hello' };
+    const store = createStore(() => state);
     const stateToAttrs = sinon.spy(() => 'hello');
     const attrs = { foo: 'bar' };
-    const context = { fizz: 'bang' };
-    const state = { val: 'Hello' };
+    const context = { fizz: 'bang', [STORE]: store };
     const r = wrap(
-      () => state,
       stateToAttrs,
     )(render);
     r(attrs, context);
@@ -59,12 +62,12 @@ describe('Wrapper tests', function () {
       return rval;
     });
 
+    const state = { val: 'Hello' };
+    const store = createStore(() => state);
     const stateToAttrs = sinon.spy(() => 'hello');
     const attrs = { foo: 'bar' };
-    const context = { fizz: 'bang' };
-    const state = { val: 'Hello' };
+    const context = { fizz: 'bang', [STORE]: store };
     const r = wrap(
-      () => state,
       stateToAttrs,
     )(render);
     const that = r(attrs, context);
@@ -82,12 +85,12 @@ describe('Wrapper tests', function () {
       return rval;
     });
 
+    const state = { val: 'Hello' };
+    const store = createStore(() => state);
     const stateToAttrs = sinon.spy(() => 'hello');
     const attrs = { foo: 'bar' };
-    const context = { fizz: 'bang' };
-    const state = { val: 'Hello' };
+    const context = { fizz: 'bang', [STORE]: store };
     const r = wrap(
-      () => state,
       stateToAttrs,
     )(render);
     const that = { fizz: 'bang' };
@@ -107,14 +110,14 @@ describe('Wrapper tests', function () {
       {}, state,
       { a: state.a.concat(action) },
     );
+    const store = createStore(reducer);
 
     const r = wrap(
-      reducer,
+      undefined, store,
     )(render);
     r();
-    const dispatch = render.firstCall.args[0].dispatch;
     const action = { type: 'Action' };
-    dispatch(action);
+    store.dispatch(action);
     render.callCount.should.equal(2);
     const args = Object.assign({}, render.secondCall.args[0]);
     delete args.dispatch;
@@ -137,9 +140,11 @@ describe('Wrapper tests', function () {
       {}, state,
       { a: state.a.concat(a) },
     );
+    const store = createStore(reducer);
 
     const r = wrap(
-      reducer,
+      undefined,
+      store,
     )(render);
     r();
     render.callCount.should.equal(2);
@@ -165,9 +170,11 @@ describe('Wrapper tests', function () {
       {}, state,
       { a: state.a.concat(a) },
     );
+    const store = createStore(reducer);
 
     const r = wrap(
-      reducer,
+      undefined,
+      store,
     )(render);
     const result = r();
     fire = true;
