@@ -114,7 +114,7 @@ const render = ({ value, dispatch }) => (
   </view>
 );
 
-const Component = wap()(view(render));
+const Counter = wrap()(view(render));
 
 const App = view(() => (
   <Store store={store}>
@@ -122,5 +122,5 @@ const App = view(() => (
   </Store>
 ))
 
-export default Component;
+export default App;
 ```
