@@ -1,12 +1,12 @@
 {
   "name": "thea-wrapper-redux",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Transforms thea components to have state managed by redux",
   "main": "index.js",
   "author": "Alexander Kahle",
   "license": "MIT",
   "peerDependencies": {
-    "redux": "^3.6.0",    
+    "redux": "^3.6.0"
   },
   "devDependencies": {
     "babel-cli": "^6.24.0",
