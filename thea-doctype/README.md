@@ -45,3 +45,12 @@ const customPage = (
 
 export const finickyView = view(customPage);
 ```
+
+**Nota Bene**: `Doctype` is exported as an ES6 default.
+If you’re using `require`, you need to do the following:
+
+```js
+const Doctype = require('thea-doctype').default;
+
+//...
+```
