@@ -1,0 +1,6 @@
+--require test-node/test-helper.js
+--compilers js:test-node/babel
+--colors
+--reporter spec
+--recursive
+test-node/**/*-test.js
