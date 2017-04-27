@@ -6,7 +6,7 @@ import { insertAll } from './dom/domUtils';
 const CHILD_COMPONENTS = Symbol('child components');
 const EMPTY = Symbol('empty');
 
-function render(attrs, context) {
+function render(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new Error('TheaUnkeyedChildren: Expected an array of children.');

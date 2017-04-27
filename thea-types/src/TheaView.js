@@ -1,32 +1,33 @@
 import { TRANSPARENT } from './constants';
-import flatten from './util/flatten';
+import forEach from './util/forEach';
+import {
+  CHILD_COMPONENTS, firstChild, lastChild,
+  children, toString, unmount, mountAll,
+} from './common/multiChildUtils';
 
-const CHILD_COMPONENTS = Symbol.for('child components');
+/* eslint-disable no-shadow */
+function update(children, context) {
+  const updateChild = ([child, attrs], i) => child.call(this[CHILD_COMPONENTS][i], attrs, context);
+  forEach(children, updateChild);
+  return this[CHILD_COMPONENTS];
+}
+/* eslint-enable */
+
+const prototype = {
+  firstChild,
+  lastChild,
+  children,
+  toString,
+  render, // eslint-disable-line
+  unmount,
+  update,
+};
+
+/**
+ * The basic fixed-child view. A transparent view that assumes that
+ * it always has the same child component structure.
+ */
 function render(attrs = [], context) {
-  function renderComponent(childComponents) {
-    const retval = this || {
-      firstChild() {
-        return this[CHILD_COMPONENTS][0].firstChild();
-      },
-      lastChild() {
-        return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
-      },
-      children() {
-        return flatten(this[CHILD_COMPONENTS].map(c => c.children()));
-      },
-      toString() {
-        return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
-      },
-      unmount() {
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-      },
-      childComponents() { return this[CHILD_COMPONENTS]; },
-      render,
-    };
-    retval[CHILD_COMPONENTS] = childComponents;
-    return retval;
-  }
-
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new TypeError('TheaView: Expected an array of children.');
@@ -39,36 +40,21 @@ function render(attrs = [], context) {
     }
   }
 
-  let childComponents;
-
-  if (!this) {
-    childComponents = attrs.map(([r, a]) => r(a, context));
-    return renderComponent(childComponents);
+  if (!this || !this.unmount) { // first render
+    const retval = Object.create(prototype);
+    retval[CHILD_COMPONENTS] = mountAll.call(this, attrs, context);
+    return retval;
   }
-
-  if (!this.unmount) {
-    childComponents = attrs.reduce((c, [r, a]) => {
-      const next = c.length ? c[c.length - 1].lastChild().nextSibling : this;
-      c.push(r.call(next, a, context));
-      return c;
-    }, []);
-    return renderComponent(childComponents);
-  }
-
-  const currentComponents = this.childComponents();
 
   if (process.env.NODE_ENV !== 'production') {
-    if (attrs.length !== currentComponents.length) {
+    if (attrs.length !== this[CHILD_COMPONENTS].length) {
       throw new Error('The child types do not match up. Views must have a consistent structure.');
     }
+    // Question: check more carefully?
   }
 
-  function updateChild([r, a], i) {
-    return r.call(currentComponents[i], a, context);
-  }
-
-  childComponents = attrs.map(updateChild);
-  return renderComponent.call(this, childComponents);
+  update.call(this, attrs, context);
+  return this;
 }
 
 render[TRANSPARENT] = true;

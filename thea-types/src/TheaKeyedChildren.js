@@ -8,7 +8,7 @@ import flatten from './util/flatten';
 import forEach from './util/forEach';
 import isInBrowser from './dom/isInBrowser';
 
-const NODE_MAP = Symbol.for('node mape');
+const NODE_MAP = Symbol.for('node map');
 const CHILD_COMPONENTS = Symbol.for('child components');
 
 const noNullChildren = t => (t !== null) && (t !== undefined) &&
