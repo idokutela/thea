@@ -1,10 +1,22 @@
 import { TRANSPARENT } from './constants';
+import {
+  CHILD_COMPONENTS, firstChild, lastChild,
+  children, toString, unmount, mountAll,
+  updateEach, fakeThis,
+} from './common/multiChildUtils';
 import emptyElement from './emptyElement';
-import flatten from './util/flatten';
 import { insertAll } from './dom/domUtils';
 
-const CHILD_COMPONENTS = Symbol('child components');
 const EMPTY = Symbol('empty');
+
+const prototype = {
+  firstChild,
+  lastChild,
+  children,
+  toString,
+  unmount,
+  render, // eslint-disable-line
+};
 
 function render(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
@@ -13,103 +25,60 @@ function render(attrs = [], context) {
     }
   }
 
-  function updateState(childComponents, empty) {
-    const result = this || {
-      childComponents() { return this[CHILD_COMPONENTS]; },
-      empty() { return this[EMPTY]; },
-      firstChild() {
-        return this[EMPTY] ? this[EMPTY].firstChild() :
-          this[CHILD_COMPONENTS][0].firstChild();
-      },
-      lastChild() {
-        return this[EMPTY] ? this[EMPTY].lastChild() :
-          this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
-      },
-      children() {
-        return this[EMPTY] ? this[EMPTY].children() :
-          flatten(this[CHILD_COMPONENTS].map(c => c.children()));
-      },
-      toString() {
-        return this[EMPTY] ? this[EMPTY].toString() :
-          this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
-      },
-      unmount() {
-        if (this[EMPTY]) {
-          return this[EMPTY].unmount();
-        }
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-        return undefined;
-      },
-      render,
-    };
-
-    result[CHILD_COMPONENTS] = childComponents;
-    result[EMPTY] = empty;
+  if (!this || !this.unmount) {
+    const result = Object.create(prototype);
+    result.attrs = attrs;
+    result.context = context;
+    if (attrs.length) {
+      result[CHILD_COMPONENTS] = mountAll.call(this, attrs, context);
+      return result;
+    }
+    result[CHILD_COMPONENTS] = [emptyElement.call(this)];
+    result[EMPTY] = result[CHILD_COMPONENTS][0];
     return result;
   }
 
-  let childComponents;
-  if (!this) {
-    if (attrs.length) {
-      childComponents = attrs.map(([r, a]) => r(a, context));
-      return updateState(childComponents);
-    }
-    return updateState([], emptyElement());
-  }
+  this.attrs = attrs;
+  this.context = context;
 
-  if (!this.unmount) {
-    if (attrs.length) {
-      childComponents = attrs.reduce((c, [r, a]) => {
-        const next = c.length ? c[c.length - 1].nextSibling : this;
-        c.push(r.call(next, a, context));
-        return c;
-      }, []);
-      return updateState(childComponents);
-    }
-    return updateState([], emptyElement.call(this));
-  }
+  const last = this.lastChild();
+  const next = last && last.nextSibling;
+  const parent = last && last.parentNode;
 
-  if (!attrs.length === !this.empty()) {
-    const result = render(attrs, context);
-    insertAll(result.children(), this.firstChild());
+  if (this[CHILD_COMPONENTS][0] === this[EMPTY]) { // if currently empty
+    if (!attrs.length) return this;
     this.unmount();
-    return updateState.call(this, result.childComponents(), result.empty());
-  }
-  if (this.empty()) {
-    return this;
+    this[CHILD_COMPONENTS] = [];
   }
 
-  const currentChildren = this.childComponents();
-  let toUpdate;
+  // Find the common part of each array, and the remainders
+  const commonComponents = this[CHILD_COMPONENTS].slice(0, attrs.length);
+  const commonChildren = attrs.slice(0, commonComponents.length);
+  const toRemove = this[CHILD_COMPONENTS].slice(commonComponents.length);
+  const toAdd = attrs.slice(commonChildren.length);
 
-  function updateChild([r, a], i) {
-    const child = toUpdate[i];
-    if (process.env.NODE_ENV !== 'production') {
-      if (child.render !== r) {
-        throw new Error('The child types functions differ in update!');
-      }
-    }
-    return r.call(child, a, context);
+  // unmount any extra mounted components
+  toRemove.length && unmount.call(fakeThis(toRemove)); // eslint-disable-line
+
+  // Mount any new components
+  const newComponents = mountAll(toAdd, context);
+
+  if (newComponents.length) {
+    const newNodes = children.call(fakeThis(newComponents)); // sneaky use of children
+    parent && insertAll(newNodes, next, parent); // eslint-disable-line
   }
 
-  if (attrs.length <= currentChildren.length) {
-    toUpdate = currentChildren.slice(0, attrs.length);
-    const toRemove = currentChildren.slice(attrs.length);
-    childComponents = attrs.map(updateChild);
-    toRemove.forEach(c => c.unmount());
-    return updateState.call(this, childComponents);
-  }
+  // Update the common components
+  this[CHILD_COMPONENTS] = commonComponents;
+  updateEach.call(this, commonChildren, context);
+  this[CHILD_COMPONENTS] = this[CHILD_COMPONENTS].concat(newComponents);
 
-  toUpdate = currentChildren;
-  const updateingAttrs = attrs.slice(0, currentChildren.length);
-  const toAdd = attrs.slice(currentChildren.length);
-  const nextSibling = this.lastChild() && this.lastChild().nextSibling;
-  const parent = this.lastChild() && this.lastChild().parentNode;
-  childComponents = updateingAttrs.map(updateChild);
-  const newComponents = toAdd.map(([r, a]) => r(a, context));
-  const newNodes = newComponents.reduce((r, x) => r.concat([...x.children()]), []);
-  parent && insertAll(newNodes, nextSibling, parent); // eslint-disable-line
-  return updateState.call(this, childComponents.concat(newComponents));
+  if (!this[CHILD_COMPONENTS].length) { // if it becomes empty insert the empty node
+    this[EMPTY] = this[EMPTY] || emptyElement();
+    this[CHILD_COMPONENTS] = [this[EMPTY]];
+    parent && insertAll([this[EMPTY].firstChild()], next, parent); // eslint-disable-line
+  }
+  return this;
 }
 
 render[TRANSPARENT] = true;

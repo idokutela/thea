@@ -43,5 +43,13 @@ export function mountAll(children, context) {
   }, []);
 }
 
-
+export function updateEach(children, context) {
+  const updateChild = ([child, attrs], i) => child.call(this[CHILD_COMPONENTS][i], attrs, context);
+  forEach(children, updateChild);
+}
 /* eslint-enable no-shadow */
+export function fakeThis(childComponents) {
+  return {
+    [CHILD_COMPONENTS]: childComponents,
+  };
+}

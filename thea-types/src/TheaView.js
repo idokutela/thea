@@ -1,17 +1,9 @@
 import { TRANSPARENT } from './constants';
-import forEach from './util/forEach';
 import {
   CHILD_COMPONENTS, firstChild, lastChild,
   children, toString, unmount, mountAll,
+  updateEach,
 } from './common/multiChildUtils';
-
-/* eslint-disable no-shadow */
-function update(children, context) {
-  const updateChild = ([child, attrs], i) => child.call(this[CHILD_COMPONENTS][i], attrs, context);
-  forEach(children, updateChild);
-  return this[CHILD_COMPONENTS];
-}
-/* eslint-enable */
 
 const prototype = {
   firstChild,
@@ -20,7 +12,6 @@ const prototype = {
   toString,
   render, // eslint-disable-line
   unmount,
-  update,
 };
 
 /**
@@ -43,6 +34,8 @@ function render(attrs = [], context) {
   if (!this || !this.unmount) { // first render
     const retval = Object.create(prototype);
     retval[CHILD_COMPONENTS] = mountAll.call(this, attrs, context);
+    retval.attrs = attrs;
+    retval.context = context;
     return retval;
   }
 
@@ -50,10 +43,13 @@ function render(attrs = [], context) {
     if (attrs.length !== this[CHILD_COMPONENTS].length) {
       throw new Error('The child types do not match up. Views must have a consistent structure.');
     }
-    // Question: check more carefully?
+    // Question: should I also check the actual child structure?
   }
 
-  update.call(this, attrs, context);
+  this.attrs = children;
+  this.context = context;
+  updateEach.call(this, attrs, context);
+
   return this;
 }
 
