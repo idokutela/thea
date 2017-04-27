@@ -1,6 +1,6 @@
 {
   "name": "thea-doctype",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A doctype component for Thea",
   "main": "index.js",
   "author": "Alexander Kahle",
