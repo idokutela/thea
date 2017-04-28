@@ -142,33 +142,36 @@ function reconcileChildren(children, context) {
         index += 1;
       } else { // the bad case: something needs to be moved
         const displacedIndex = oldNodeMap.get(key);
-        const [child, attrs] = children[index];
 
-        childComponents[index] = child.call(oldChildComponents[displacedIndex], attrs, context);
-        parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
+        parent && insertAll(oldChildComponents[displacedIndex].children(), undefined, frag); // eslint-disable-line
         moveEntry(oldChildren, displacedIndex, oldIndex);
         moveEntry(oldChildComponents, displacedIndex, oldIndex);
-        index += 1;
-        oldIndex += 1;
+
+        // let the next reconcile deal with updating
       }
     } else {
       const [oldChild] = oldChildren[oldIndex];
       const [child, attrs] = children[index];
 
+      // Shift the front to the next position.
+      // A tiny bit tricky: it's possible the old child component has already been moved,
+      // it's on the doc frag, and its next sibling is null. In that case, the current front is
+      // already the correct front.
+      const newFront = parent && (oldChildComponents[oldIndex].lastChild().nextSibling || front);
+
       if (oldChild !== child) {
         childComponents[index] = child(attrs, context);
         parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
-        front = parent && oldChildComponents[oldIndex].lastChild().nextSibling;
         oldChildComponents[oldIndex].unmount();
       } else {
         if (frag && frag.firstChild) {
           insert(frag, front, parent);
         }
         childComponents[index] = child.call(oldChildComponents[oldIndex], attrs, context);
-        front = parent && childComponents[index].lastChild().nextSibling;
       }
       index += 1;
       oldIndex += 1;
+      front = newFront;
     }
   }
 
