@@ -1,4 +1,4 @@
-import render from '../src/TheaKeyedChildren';
+import render, { CHILDREN } from '../src/TheaKeyedChildren';
 
 describe('TheaKeyedChildren tests', function () {
   let components;

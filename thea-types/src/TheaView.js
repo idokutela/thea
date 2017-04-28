@@ -10,7 +10,7 @@ const prototype = {
   lastChild,
   children,
   toString,
-  render, // eslint-disable-line
+  render: TheaView, // eslint-disable-line
   unmount,
 };
 
@@ -18,7 +18,7 @@ const prototype = {
  * The basic fixed-child view. A transparent view that assumes that
  * it always has the same child component structure.
  */
-function render(attrs = [], context) {
+function TheaView(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new TypeError('TheaView: Expected an array of children.');
@@ -53,6 +53,6 @@ function render(attrs = [], context) {
   return this;
 }
 
-render[TRANSPARENT] = true;
+TheaView[TRANSPARENT] = true;
 
-export default render;
+export default TheaView;

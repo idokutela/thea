@@ -15,10 +15,10 @@ const prototype = {
   children,
   toString,
   unmount,
-  render, // eslint-disable-line
+  render: TheaUnkeyedChildren, // eslint-disable-line
 };
 
-function render(attrs = [], context) {
+function TheaUnkeyedChildren(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new Error('TheaUnkeyedChildren: Expected an array of children.');
@@ -81,6 +81,6 @@ function render(attrs = [], context) {
   return this;
 }
 
-render[TRANSPARENT] = true;
+TheaUnkeyedChildren[TRANSPARENT] = true;
 
-export default render;
+export default TheaUnkeyedChildren;

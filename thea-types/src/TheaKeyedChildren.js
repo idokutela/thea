@@ -1,16 +1,36 @@
 /* eslint-disable no-use-before-define */
 
 import TheaText from './TheaText';
-import { insertAll } from './dom/domUtils';
+import { insertAll, insert } from './dom/domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
-import flatten from './util/flatten';
-import forEach from './util/forEach';
+import reduce from './util/reduce';
 import isInBrowser from './dom/isInBrowser';
+import {
+  CHILD_COMPONENTS, firstChild, lastChild, children as getChildren,
+  unmount as unmountRaw, toString, mountAll, fakeThis,
+} from './common/multiChildUtils';
 
-const NODE_MAP = Symbol.for('node map');
-const CHILD_COMPONENTS = Symbol.for('child components');
+/*
+ * This is the most complicated component. It performs
+ * a full child subtree diff, a la react.
+ *
+ * TOC:
+ *  - REGULARISING FUNCTIONS : utilities to make sure the list
+ *      of children is regular,
+ *  - PROTOYPE : the render prototype,
+ *  - MOUNT : deals with mounting children
+ *  - RECONCILE : the heart of the component: reconciles children
+ *  - RENDER FUNCTION : the actual renderer
+ */
 
+export const NODE_MAP = Symbol.for('node map');
+export const CHILDREN = Symbol.for('children');
+
+/*
+ * REGULARISING FUNCTIONS : utilities to make sure the list
+ *      of children is regular,
+ */
 const noNullChildren = t => (t !== null) && (t !== undefined) &&
     (t !== true) && (t !== false);
 
@@ -19,122 +39,194 @@ const normaliseChild = (t) => {
   return [TheaText, String(t)];
 };
 
-function render(attrs, context) {
-  const reconcileChild = function reconcileChild(oldMap, parentNode) {
-    return reconcileChildInt.bind(undefined, oldMap, parentNode);
-  };
-
-  // Normalise children
-  let newChildren = attrs;
-  if (!Array.isArray(attrs)) {
-    newChildren = [attrs];
-  } else if (attrs.length && typeof attrs[0] === 'function') {
-    newChildren = [attrs];
+const normaliseChildren = (children) => {
+  let result = children;
+  if (!Array.isArray(children)) {
+    result = [children];
+  } else if (typeof children[0] === 'function') {
+    result = [children];
   }
-  newChildren = newChildren
+  result = result
     .filter(noNullChildren)
     .map(normaliseChild);
-  if (newChildren.length === 0) {
-    newChildren = [[emptyElement]];
+  if (result.length === 0) {
+    result = [[emptyElement]];
+  }
+  return result;
+};
+
+/*
+ * PROTOTYPE : the render prototype,
+ */
+const prototype = {
+  firstChild,
+  lastChild,
+  children: getChildren,
+  render: TheaKeyedChildren, // eslint-disable-line
+  toString,
+  unmount() {
+    this[NODE_MAP] = undefined;
+    unmountRaw.call(this);
+  },
+};
+
+/*
+ * MOUNT : mounting children
+ */
+const makeNodeMap = children => reduce(children, (nodeMap, node, i) => {
+  const key = node[2] || i;
+  if (process.env.node_env !== 'production') {
+    if (typeof node.key === 'number') {
+      console.warn('It is a bad idea to key children with numbers. It easily leads to collisions.'); // eslint-disable-line
+    }
+    if (nodeMap.get(node.key)) {
+      throw new Error(`Duplicate key!
+The keys you set on children are not unique.
+A common cause is setting some keys to numeric values, and having these collide with array indices.`);
+    }
+  }
+  nodeMap.set(key, i);
+  return nodeMap;
+}, new Map());
+
+function mountChildren(children, context) {
+  return {
+    nodeMap: makeNodeMap(children),
+    childComponents: mountAll.call(this, children, context),
+  };
+}
+
+/*
+ * RECONCILE: reconciling child lists. The heart of the component.
+ */
+// Moves an item at index i to index j in array. Assumes i and j are array indices
+function move(array, i, j) {
+  array.splice(j, 0, array.splice(i, 1)[0]);
+  return array;
+}
+
+// QUESTION: is it better to remove all nodes to be deleted first,
+// or afterwards?
+// The first approach means doing a scan and looking for misses before
+// reconciling, the second means that if something is to be deleted,
+// there will be lots of pointless DOM reorganisation.
+//
+// For now, I choose a hybrid: I make a map of all new nodes,
+// and if the front misses, I check for
+function reconcileChildren(children, context) {
+  const nodeMap = makeNodeMap(children);
+  let childComponents = [];
+  const oldNodeMap = this[NODE_MAP];
+  const oldChildComponents = this[CHILD_COMPONENTS];
+  const oldChildren = this[CHILDREN];
+  const parent = isInBrowser && this.firstChild().parentNode;
+
+  let oldIndex = 0;
+  let index = 0;
+  const frag = parent && document.createDocumentFragment();
+  let front = parent && this.firstChild();
+
+  // Go through the old and new children lists
+  // updating children if they share keys.
+  //
+  // if there is a key miss, deal with it.
+  while (index < children.length && oldIndex < oldChildren.length) {
+    const key = children[index][2] || index;
+    const oldKey = oldChildren[oldIndex][2] || oldIndex;
+
+    if (key !== oldKey) { // Either a node must be added, deleted or moved
+      if (!nodeMap.has(oldKey)) { // remove old element
+        front = parent && oldChildComponents[oldIndex].lastChild().nextSibling;
+        oldChildComponents[oldIndex].unmount();
+        oldIndex += 1;
+      } else if (!oldNodeMap.has(key)) { // add new element
+        const [child, attrs] = children[index];
+        childComponents[index] = child(attrs, context);
+        parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
+        index += 1;
+      } else { // the bad case: something needs to be moved
+        const displacedIndex = oldNodeMap.get(key);
+        const [child, attrs] = children[index];
+
+        childComponents[index] = child.call(oldChildComponents[displacedIndex], attrs, context);
+        parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
+        move(oldChildren, displacedIndex, oldIndex);
+        move(oldChildComponents, displacedIndex, oldIndex);
+        index += 1;
+        oldIndex += 1;
+      }
+    } else {
+      const [oldChild] = oldChildren[oldIndex];
+      const [child, attrs] = children[index];
+
+      if (oldChild !== child) {
+        childComponents[index] = child(attrs, context);
+        parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
+        front = parent && oldChildComponents[oldIndex].lastChild().nextSibling;
+        oldChildComponents[oldIndex].unmount();
+      } else {
+        if (frag && frag.firstChild) {
+          insert(frag, front, parent);
+        }
+        childComponents[index] = child.call(oldChildComponents[oldIndex], attrs, context);
+        front = parent && childComponents[index].lastChild().nextSibling;
+      }
+      index += 1;
+      oldIndex += 1;
+    }
   }
 
-  // Deal with the two special cases
-  if (!this) return mount(newChildren);
-  if (!this.unmount) return revive(this, newChildren);
+  // Now deal with any remainders
+  if (oldIndex < oldChildren.length) { // Need to remove a bunch
+    const toRemove = oldChildComponents.slice(oldIndex);
+    unmountRaw.call(fakeThis(toRemove));
+  } else if (index < children.length) { // Need to add a bunch
+    const newComponents = mountAll(children.slice(index), context);
+    parent && insertAll(getChildren.call(fakeThis(newComponents)), undefined, frag); // eslint-disable-line
+    childComponents = childComponents.concat(newComponents);
+  }
 
-  // Reconcile children
-  const { childComponents, nodeMap } = newChildren.reduce(
-    reconcileChild(this.nodeMap(), this.firstChild() && this.firstChild().parentNode),
-      { childComponents: [], nodeMap: new Map(), front: this.firstChild() },
-  );
-  forEach(this.nodeMap().values(), x => x.unmount());
+  if (parent && frag.firstChild) { // Make sure to add any remaining children
+    insert(frag, front, parent);
+  }
 
-  return updateState.call(this, nodeMap, childComponents);
+  this[CHILDREN] = children;
+  this[NODE_MAP] = nodeMap;
+  this[CHILD_COMPONENTS] = childComponents;
+}
 
-  function updateState(nodeMap, childComponents) { // eslint-disable-line
-    const result = this || {
-      nodeMap() { return this[NODE_MAP]; },
-      firstChild() { return this[CHILD_COMPONENTS][0].firstChild(); },
-      lastChild() { return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild(); },
-      children() { return flatten(this[CHILD_COMPONENTS].map(c => c.children())); },
-      toString() { return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), ''); },
-      unmount() {
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-      },
-      render,
-    };
-    result[NODE_MAP] = nodeMap;
+/*
+ * RENDER FUNCTION : the actual renderer
+ */
+
+function TheaKeyedChildren(attrs, context) {
+  // Was called newChildren
+  const children = normaliseChildren(attrs);
+
+  // Mount if necessary
+  if (!this || !this.unmount) {
+    const { nodeMap, childComponents } = mountChildren.call(this, children, context);
+    const result = Object.create(prototype);
+    result.attrs = attrs;
+    result.context = context;
     result[CHILD_COMPONENTS] = childComponents;
+    result[NODE_MAP] = nodeMap;
+    result[CHILDREN] = children;
     return result;
   }
 
-  function revive(node, children) {
-    function reviveChild(
-      { nodeMap, childComponents, firstNode }, [renderChild, childAttrs, index], count,
-    ) {
-      const childIndex = index === undefined ? count : index;
-      const newChild = renderChild.call(firstNode, childAttrs, context);
-      nodeMap.set(childIndex, newChild);
-      childComponents.push(newChild);
-      return {
-        nodeMap,
-        childComponents,
-        firstNode: newChild.lastChild().nextSibling,
-      };
-    }
-    const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
-      reviveChild, { nodeMap: new Map(), childComponents: [], firstNode: node });
+  this.attrs = attrs;
+  this.context = context;
 
-    return updateState(nodeMap, childComponents);
-  }
+  const activeElement = isInBrowser && document.activeElement; // Make sure focus is stored
+  reconcileChildren.call(this, children, context);
 
-  function mount(children) {
-    function mountChild({ nodeMap, childComponents }, [renderChild, childAttrs, index], count) {
-      const newChild = renderChild(childAttrs, context);
-      const childIndex = index === undefined ? count : index;
-      nodeMap.set(childIndex, newChild);
-      childComponents.push(newChild);
-      return { nodeMap, childComponents };
-    }
-    const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
-      mountChild, { nodeMap: new Map(), childComponents: [] });
+  isInBrowser &&                          // eslint-disable-line
+  activeElement && activeElement.focus(); // and focus restored if a node is moved
 
-    return updateState(nodeMap, childComponents);
-  }
-
-  function reconcileChildInt(oldMap, parentNode,
-    { childComponents, nodeMap, front }, [renderChild, attrs, index], count) { // eslint-disable-line
-    const childIndex = index === undefined ? count : index;
-    let prevChild = oldMap.get(childIndex);
-    let newChild;
-    let shouldMove;
-    const activeNode = isInBrowser && document.activeElement;
-
-    if (!prevChild || prevChild.render !== renderChild) {
-      newChild = renderChild(attrs, context);
-      if (prevChild) {
-        front = front === prevChild.firstChild() ? (prevChild.lastChild() && prevChild.lastChild().nextSibling) : front; // eslint-disable-line
-      }
-      prevChild && prevChild.unmount(); // eslint-disable-line
-      prevChild = undefined;
-      shouldMove = true;
-    } else {
-      shouldMove = prevChild.firstChild() !== front;
-      newChild = prevChild.render(attrs, context);
-    }
-    if (shouldMove && parentNode) {
-      insertAll(newChild.children(), front, parentNode);
-      activeNode && activeNode.focus(); // eslint-disable-line
-    }
-    nodeMap.set(childIndex, newChild);
-    oldMap.delete(childIndex);
-    childComponents.push(newChild);
-    front = newChild.lastChild() && newChild.lastChild().nextSibling; // eslint-disable-line
-
-    return { nodeMap, childComponents, front };
-  }
+  return this;
 }
 
-render[TRANSPARENT] = true;
+TheaKeyedChildren[TRANSPARENT] = true;
 
-export default render;
+export default TheaKeyedChildren;
