@@ -1,60 +1,56 @@
-import { remove } from './dom/domUtils';
+import { firstChild, lastChild, children, unmount, NODE } from './common/singleChildUtils';
+import { insert } from './dom/domUtils';
 
-const VALUE = Symbol('value');
+export const VALUE = Symbol('value');
 
 export default function simpleComponent({
   attrsToValue,
   valueToString,
-  nodeType,
   componentName,
   createNode,
+  validateNode,
 }) {
-  function renderComponent(value, node = createNode(value)) {
-    const children = node ? [node] : [];
-    return Object.assign(this || {}, {
-      [VALUE]: value,
-      children() {
-        return children;
-      },
-      firstChild() {
-        return node;
-      },
-      lastChild() {
-        return node;
-      },
-      value() {
-        return this[VALUE];
-      },
-      toString() {
-        return valueToString(this[VALUE]);
-      },
-      unmount() {
-        remove(children[0]);
-      },
-      render: renderComponent,
-    });
+  const prototype = {
+    firstChild,
+    lastChild,
+    children,
+    render, // eslint-disable-line
+    toString() { return valueToString(this[VALUE]); },
+    unmount,
+  };
+
+  function render(attrs) {
+    const value = attrsToValue(attrs);
+
+    if (!this || !this.unmount) {
+      const result = Object.create(prototype);
+      result[VALUE] = value;
+      let node = this || createNode(value);
+
+      if (node && !validateNode(node)) {
+        if (value.trim()) {
+          throw new Error(`Error reviving ${componentName}: incorrect node type found.`);
+        }
+        // be tolerant, assume the node was removed in minifying
+        node = createNode(value);
+        insert(node, this);
+      }
+      if (node && node.textContent !== value) {
+        if (node.textContent !== value.trim()) {
+          throw new Error(`Error reviving ${componentName}: expected the content ${value} but found ${node.textContent}.`);
+        }
+        node.textContent = value;
+      }
+      result[NODE] = node;
+      return result;
+    }
+
+    if (this[NODE] && value !== this[VALUE]) {
+      this[NODE].textContent = value;
+    }
+    this[VALUE] = value;
+    return this;
   }
 
-  return function render(attrs) {
-    const value = attrsToValue(attrs);
-    if (this) {
-      if (this.unmount) {
-        if (value !== this.value()) {
-          if (this.firstChild()) this.firstChild().textContent = value;
-          this[VALUE] = value;
-          return this;
-        }
-
-        return this;
-      }
-      if (this.nodeType !== nodeType) {
-        throw new Error(`${componentName}: cannot mount on node of type ${this.nodeType}.`);
-      }
-      if (this.textContent !== value) {
-        throw new Error(`${componentName}: The text does not match the content of the existing node.`);
-      }
-      return renderComponent(value, this);
-    }
-    return renderComponent(value);
-  };
+  return render;
 }

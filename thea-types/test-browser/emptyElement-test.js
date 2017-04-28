@@ -28,11 +28,17 @@ describe('Empty element tests', function () {
     el.unmount.should.be.a.Function();
   });
 
-  it('should fail to mount on a non-matching node', function () {
+  it('should tolerantly mount on non-matching nodes', function () {
     let node = document.createElement('div');
-    (() => EmptyElement.call(node)).should.throw();
+    document.body.appendChild(node);
+    let el = EmptyElement.call(node);
+    el.firstChild().nextSibling.should.equal(node);
+    document.body.removeChild(node);
+    el.unmount();
     node = document.createComment('Hello');
-    (() => EmptyElement.call(node)).should.throw();
+    el = EmptyElement.call(node);
+    el.firstChild().should.equal(node);
+    node.textContent.should.equal('%%');
   });
 
   it('should render idempotently', function () {
@@ -40,7 +46,7 @@ describe('Empty element tests', function () {
     const clone = Object.assign({}, or);
     const el = EmptyElement.call(or);
     el.should.equal(or);
-    el.should.eql(clone);
+    Object.assign({}, el).should.eql(clone);
   });
 
   it('should unmount correctly', function () {

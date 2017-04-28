@@ -6,12 +6,12 @@ import isInBrowser from './dom/isInBrowser';
 const attrsToValue = (attrs = []) => attrs.reduce((r, x) => r + x, '');
 const valueToString = x => `<!--${escape(x)}-->`;
 const createNode = isInBrowser ? value => document.createComment(value) : () => {};
-const nodeType = COMMENT;
+const validateNode = node => node && node.nodeType === COMMENT;
 const componentName = 'Comment';
 export default simpleComponent({
   attrsToValue,
   valueToString,
   createNode,
-  nodeType,
+  validateNode,
   componentName,
 });
