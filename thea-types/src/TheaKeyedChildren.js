@@ -5,6 +5,7 @@ import { insertAll, insert } from './dom/domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
 import reduce from './util/reduce';
+import moveEntry from './util/moveEntry';
 import isInBrowser from './dom/isInBrowser';
 import {
   CHILD_COMPONENTS, firstChild, lastChild, children as getChildren,
@@ -99,11 +100,6 @@ function mountChildren(children, context) {
 /*
  * RECONCILE: reconciling child lists. The heart of the component.
  */
-// Moves an item at index i to index j in array. Assumes i and j are array indices
-function move(array, i, j) {
-  array.splice(j, 0, array.splice(i, 1)[0]);
-  return array;
-}
 
 // QUESTION: is it better to remove all nodes to be deleted first,
 // or afterwards?
@@ -150,8 +146,8 @@ function reconcileChildren(children, context) {
 
         childComponents[index] = child.call(oldChildComponents[displacedIndex], attrs, context);
         parent && insertAll(childComponents[index].children(), undefined, frag); // eslint-disable-line
-        move(oldChildren, displacedIndex, oldIndex);
-        move(oldChildComponents, displacedIndex, oldIndex);
+        moveEntry(oldChildren, displacedIndex, oldIndex);
+        moveEntry(oldChildComponents, displacedIndex, oldIndex);
         index += 1;
         oldIndex += 1;
       }
