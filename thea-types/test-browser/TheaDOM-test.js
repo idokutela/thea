@@ -329,4 +329,48 @@ describe('TheaDOM tests', function () {
     focussed1.should.be.false();
     focussed2.should.be.true();
   });
+
+  it('should make an unescaped script tag', function () {
+    const script = DOM('script');
+    const attrs = { type: 'text/myscript', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = script(attrs);
+    const node = component.firstChild();
+    node.nodeType.should.equal(window.Node.ELEMENT_NODE);
+    node.tagName.toLowerCase().should.equal('script');
+    node.getAttribute('type').should.equal('text/myscript');
+    node.textContent.should.equal('hello & bye<= 12 + 3\'">');
+    component.attrs.should.eql(attrs);
+    const newAttrs = { type: 'text/ms', children: ['a'] };
+    component.render(newAttrs);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+
+    const componentCopy = script.call(node, newAttrs);
+    componentCopy.should.not.equal(component);
+    componentCopy.firstChild().should.equal(node);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+  });
+
+  it('should make an unescaped style tag', function () {
+    const style = DOM('style');
+    const attrs = { type: 'text/mystyle', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = style(attrs);
+    const node = component.firstChild();
+    node.nodeType.should.equal(window.Node.ELEMENT_NODE);
+    node.tagName.toLowerCase().should.equal('style');
+    node.getAttribute('type').should.equal('text/mystyle');
+    node.textContent.should.equal('hello & bye<= 12 + 3\'">');
+    component.attrs.should.eql(attrs);
+    const newAttrs = { type: 'text/ms', children: ['a'] };
+    component.render(newAttrs);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+
+    const componentCopy = style.call(node, newAttrs);
+    componentCopy.should.not.equal(component);
+    componentCopy.firstChild().should.equal(node);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+  });
 });

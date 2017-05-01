@@ -1,10 +1,10 @@
 import escape from 'escape-html';
-import voidElements from './voidElements';
-import { setToString, getCapturedEventName, getBubbledEventName } from '../TheaDOM';
-import reduce from '../util/reduce';
-import camelToDash from './camelToDash';
+import voidElements from './dom/voidElements';
+import { setToString, getCapturedEventName, getBubbledEventName } from './common/DOMNodeUtils';
+import reduce from './util/reduce';
+import camelToDash from './dom/camelToDash';
 
-export { default as voidElements } from './voidElements';
+export { default as voidElements } from './dom/voidElements';
 export const rawTextElements = new Set(['script', 'style']);
 export const escapableRawTextElements = new Set(['textarea', 'title']);
 

@@ -1,4 +1,4 @@
-import { toStringNoDOM } from '../src/dom/domKnowledge';
+import { toStringNoDOM } from '../src/DOMKnowledge';
 
 describe('dom knowledge tests', function () {
   it('should correctly stringify a self-closing tag', function () {
