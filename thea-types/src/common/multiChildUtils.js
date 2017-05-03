@@ -1,7 +1,3 @@
-import forEach from '../util/forEach';
-import reduce from '../util/reduce';
-import flatten from '../util/flatten';
-
 export const CHILD_COMPONENTS = Symbol('thea/child_components');
 
 
@@ -16,37 +12,59 @@ export function lastChild() {
     undefined;
 }
 
+/* eslint-disable no-shadow, no-plusplus */
 export function children() {
-  return flatten(
-    this[CHILD_COMPONENTS]
-      .map(x => x.children()),
-  );
+  const childComponents = this[CHILD_COMPONENTS];
+  const result = [];
+  for (let i = 0; i < childComponents.length; i++) {
+    const cs = childComponents[i].children();
+    for (let j = 0; j < cs.length; j++) {
+      result.push(cs[j]);
+    }
+  }
+  return result;
 }
 
-export function toString() {
-  return reduce(this[CHILD_COMPONENTS], (r, x) => r + x.toString(), '');
+export function mountAll(node, children, context) {
+  const childComponents = [];
+  if (node) {
+    let first = node;
+    for (let i = 0; i < children.length; i++) {
+      childComponents[i] = children[i][0].call(first, children[i][1], context);
+      first = childComponents[i].lastChild();
+      first = first && first.nextSibling;
+    }
+    return childComponents;
+  }
+  for (let i = 0; i < children.length; i++) {
+    childComponents[i] = children[i][0].call(undefined, children[i][1], context);
+  }
+  return childComponents;
 }
 
 export function unmount() {
-  forEach(this[CHILD_COMPONENTS], x => x.unmount());
+  const childComponents = this[CHILD_COMPONENTS];
+  for (let i = 0; i < childComponents.length; i++) {
+    childComponents[i].unmount();
+  }
 }
 
-/* eslint-disable no-shadow */
-export function mountAll(children, context) {
-  const last = x => x[x.length - 1];
-  return reduce(children, (r, [child, attrs]) => {
-    const lastComponent = last(r);
-    const lastChild = lastComponent && lastComponent.lastChild();
-    const firstNode = (lastChild && lastChild.nextSibling) || this;
-    r.push(child.call(firstNode, attrs, context));
-    return r;
-  }, []);
+export function updateEach(component, children, context) {
+  const childComponents = component[CHILD_COMPONENTS];
+  for (let i = 0; i < childComponents.length; i++) {
+    childComponents[i] = children[i][0].call(childComponents[i], children[i][1], context);
+  }
 }
 
-export function updateEach(children, context) {
-  const updateChild = ([child, attrs], i) => child.call(this[CHILD_COMPONENTS][i], attrs, context);
-  forEach(children, updateChild);
+export function toString() {
+  const childComponents = this[CHILD_COMPONENTS];
+  let result = '';
+  for (let i = 0; i < childComponents.length; i++) {
+    result += childComponents[i].toString();
+  }
+  return result;
 }
+
 /* eslint-enable no-shadow */
 export function fakeThis(childComponents) {
   return {

@@ -33,7 +33,7 @@ function TheaView(attrs = [], context) {
 
   if (!this || !this.unmount) { // first render
     const retval = Object.create(prototype);
-    retval[CHILD_COMPONENTS] = mountAll.call(this, attrs, context);
+    retval[CHILD_COMPONENTS] = mountAll(this, attrs, context);
     retval.attrs = attrs;
     retval.context = context;
     return retval;
@@ -48,7 +48,7 @@ function TheaView(attrs = [], context) {
 
   this.attrs = children;
   this.context = context;
-  updateEach.call(this, attrs, context);
+  updateEach(this, attrs, context);
 
   return this;
 }

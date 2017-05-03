@@ -93,7 +93,7 @@ A common cause is setting some keys to numeric values, and having these collide 
 function mountChildren(children, context) {
   return {
     nodeMap: makeNodeMap(children),
-    childComponents: mountAll.call(this, children, context),
+    childComponents: mountAll(this, children, context),
   };
 }
 
@@ -180,7 +180,7 @@ function reconcileChildren(children, context) {
     const toRemove = oldChildComponents.slice(oldIndex);
     unmountRaw.call(fakeThis(toRemove));
   } else if (index < children.length) { // Need to add a bunch
-    const newComponents = mountAll(children.slice(index), context);
+    const newComponents = mountAll(undefined, children.slice(index), context);
     parent && insertAll(getChildren.call(fakeThis(newComponents)), undefined, frag); // eslint-disable-line
     childComponents = childComponents.concat(newComponents);
   }
