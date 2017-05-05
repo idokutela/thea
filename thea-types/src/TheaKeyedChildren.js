@@ -1,7 +1,7 @@
 /* eslint-disable no-use-before-define */
 
 import TheaText from './TheaText';
-import { insertAll, insert } from './dom/domUtils';
+import { insertAll, insert, removeAll } from './dom/domUtils';
 import { TRANSPARENT } from './constants';
 import emptyElement from './emptyElement';
 import reduce from './util/reduce';
@@ -11,6 +11,7 @@ import {
   CHILD_COMPONENTS, firstChild, lastChild, children as getChildren,
   unmount as unmountRaw, toString, mountAll, fakeThis,
 } from './common/multiChildUtils';
+import addToUnmount from './common/unmountDaemon';
 
 /*
  * This is the most complicated component. It performs
@@ -178,7 +179,10 @@ function reconcileChildren(children, context) {
   // Now deal with any remainders
   if (oldIndex < oldChildren.length) { // Need to remove a bunch
     const toRemove = oldChildComponents.slice(oldIndex);
-    unmountRaw.call(fakeThis(toRemove));
+    if (parent) {
+      removeAll(toRemove[0].firstChild(), toRemove[toRemove.length - 1].lastChild(), parent);
+    }
+    addToUnmount(toRemove);
   } else if (index < children.length) { // Need to add a bunch
     const newComponents = mountAll(undefined, children.slice(index), context);
     parent && insertAll(getChildren.call(fakeThis(newComponents)), undefined, frag); // eslint-disable-line

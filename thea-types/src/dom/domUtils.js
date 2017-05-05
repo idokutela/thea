@@ -15,4 +15,14 @@ export const insertAll = (nodes, successor, parent = successor && successor.pare
     parent.insertBefore(nodes[i], successor);
   }
 };
+export function removeAll(start, end, parent) {
+  if (!parent) {
+    return;
+  }
+  const after = end.nextSibling;
+  while (start.nextSibling !== after) {
+    parent.removeChild(start.nextSibling);
+  }
+  parent.removeChild(start);
+}
 /* eslint-enable no-plusplus */

@@ -1,5 +1,3 @@
-import { remove } from '../dom/domUtils';
-
 export const NODE = Symbol('thea/node');
 
 export function firstChild() {
@@ -15,5 +13,5 @@ export function children() {
 }
 
 export function unmount() {
-  remove(this[NODE]);
+  this[NODE] && this[NODE].parentNode && this[NODE].parentNode.removeChild(this[NODE]); // eslint-disable-line
 }

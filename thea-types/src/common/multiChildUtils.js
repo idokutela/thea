@@ -1,3 +1,6 @@
+import addToUnmount from './unmountDaemon';
+import { removeAll } from '../dom/domUtils';
+
 export const CHILD_COMPONENTS = Symbol('thea/child_components');
 
 
@@ -42,11 +45,14 @@ export function mountAll(node, children, context) {
   return childComponents;
 }
 
-export function unmount() {
-  const childComponents = this[CHILD_COMPONENTS];
-  for (let i = 0; i < childComponents.length; i++) {
-    childComponents[i].unmount();
+export function unmount(isDangling) {
+  const first = this.firstChild();
+  const parent = first && first.parentNode;
+  const attached = !isDangling && parent;
+  if (attached) {
+    removeAll(first, this.lastChild(), parent);
   }
+  addToUnmount(this[CHILD_COMPONENTS]);
 }
 
 export function updateEach(component, children, context) {

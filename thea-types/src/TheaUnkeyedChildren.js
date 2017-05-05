@@ -2,10 +2,10 @@ import { TRANSPARENT } from './constants';
 import {
   CHILD_COMPONENTS, firstChild, lastChild,
   children, toString, unmount, mountAll,
-  updateEach, fakeThis,
 } from './common/multiChildUtils';
 import emptyElement from './emptyElement';
-import { insertAll, insert } from './dom/domUtils';
+import { insertAll, removeAll } from './dom/domUtils';
+import addToUnmount from './common/unmountDaemon';
 
 const EMPTY = Symbol('empty');
 
@@ -57,18 +57,8 @@ function TheaUnkeyedChildren(attrs = [], context) {
   }
 
   if (!attrs.length) {
-    if (parent) {
-      const first = this.firstChild();
-      const after = this.lastChild().nextSibling;
-      while (first.nextSibling !== after) {
-        parent.removeChild(first.nextSibling);
-      }
-      parent.removeChild(first);
-      insert(this[EMPTY].firstChild(), after, parent);
-    }
-    for (let i = 0; i < this[CHILD_COMPONENTS].length; i++) {
-      this[CHILD_COMPONENTS][i].unmount();
-    }
+    parent && removeAll(this.firstChild(), last, parent); // eslint-disable-line
+    addToUnmount(this[CHILD_COMPONENTS]);
     this[CHILD_COMPONENTS] = [this[EMPTY]];
     return this;
   }
@@ -80,9 +70,11 @@ function TheaUnkeyedChildren(attrs = [], context) {
     childComponents[i] = attrs[i][0].call(this[CHILD_COMPONENTS][i], attrs[i][1], context);
   }
   if (diff < 0) { // remove
-    for (let i = toUpdate; i < this[CHILD_COMPONENTS].length; i++) {
-      this[CHILD_COMPONENTS][i].unmount();
+    if (parent) {
+      const first = this[CHILD_COMPONENTS][toUpdate].firstChild();
+      removeAll(first, last, parent);
     }
+    addToUnmount(this[CHILD_COMPONENTS].slice(toUpdate));
   } else if (diff > 0) {
     const toAdd = [];
     const end = parent && this.lastChild().nextSibling;
