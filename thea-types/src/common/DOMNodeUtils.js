@@ -1,8 +1,5 @@
 import camelToDash from '../dom/camelToDash';
 import isInBrowser from '../dom/isInBrowser';
-import toLowerCaseMap from '../util/toLowerCaseMap';
-import updateEntries from '../util/updateEntries';
-import { toMap, entries } from '../util/entries';
 import { NODE } from './singleChildUtils';
 import addToUnmount from './unmountDaemon';
 

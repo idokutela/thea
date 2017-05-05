@@ -1,4 +1,4 @@
-import makeSimpleComponent from './simpleComponent';
+import makeSimpleComponent from './common/simpleComponent';
 import { TEXT } from './constants';
 import isInBrowser from './dom/isInBrowser';
 import flattenChildren from './flattenChildren';

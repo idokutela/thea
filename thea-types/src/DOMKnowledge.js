@@ -1,7 +1,6 @@
 import escape from 'escape-html';
 import voidElements from './dom/voidElements';
 import { setToString, getCapturedEventName, getBubbledEventName } from './common/DOMNodeUtils';
-import reduce from './util/reduce';
 import camelToDash from './dom/camelToDash';
 
 export { default as voidElements } from './dom/voidElements';

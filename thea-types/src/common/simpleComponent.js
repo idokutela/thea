@@ -1,5 +1,5 @@
-import { firstChild, lastChild, children, unmount, NODE } from './common/singleChildUtils';
-import { insert } from './dom/domUtils';
+import { firstChild, lastChild, children, unmount, NODE } from '../common/singleChildUtils';
+import { insert } from '../dom/domUtils';
 
 export const VALUE = Symbol('value');
 

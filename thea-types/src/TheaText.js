@@ -1,5 +1,5 @@
 import escape from 'escape-html';
-import simpleComponent from './simpleComponent';
+import simpleComponent from './common/simpleComponent';
 import { TEXT } from './constants';
 import isInBrowser from './dom/isInBrowser';
 

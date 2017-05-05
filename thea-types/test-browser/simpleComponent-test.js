@@ -1,4 +1,4 @@
-import makeComponent from '../src/simpleComponent';
+import makeComponent from '../src/common/simpleComponent';
 
 describe('Simple Component tests', function () {
   let component;
