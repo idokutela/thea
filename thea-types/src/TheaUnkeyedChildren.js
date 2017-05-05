@@ -1,13 +1,11 @@
 import { TRANSPARENT } from './constants';
 import {
-  CHILD_COMPONENTS, firstChild, lastChild,
+  EMPTY, CHILD_COMPONENTS, firstChild, lastChild,
   children, toString, unmount, mountAll,
 } from './common/multiChildUtils';
 import emptyElement from './emptyElement';
-import { insertAll, removeAll } from './dom/domUtils';
+import { insert, insertAll, removeAll } from './dom/domUtils';
 import addToUnmount from './common/unmountDaemon';
-
-const EMPTY = Symbol('empty');
 
 const prototype = {
   firstChild,
@@ -57,7 +55,11 @@ function TheaUnkeyedChildren(attrs = [], context) {
   }
 
   if (!attrs.length) {
-    parent && removeAll(this.firstChild(), last, parent); // eslint-disable-line
+    if (parent) {
+      const next = last.nextSibling;
+      removeAll(this.firstChild(), last, parent);
+      insert(this[EMPTY].firstChild(), next, parent);
+    }
     addToUnmount(this[CHILD_COMPONENTS]);
     this[CHILD_COMPONENTS] = [this[EMPTY]];
     return this;

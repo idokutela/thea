@@ -2,6 +2,7 @@ import addToUnmount from './unmountDaemon';
 import { removeAll } from '../dom/domUtils';
 
 export const CHILD_COMPONENTS = Symbol('thea/child_components');
+export const EMPTY = Symbol('thea/empty');
 
 
 export function firstChild() {

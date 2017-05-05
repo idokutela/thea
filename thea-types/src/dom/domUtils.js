@@ -19,7 +19,18 @@ export function removeAll(start, end, parent) {
   if (!parent) {
     return;
   }
+  if (start === parent.firstChild && end === parent.lastChild) {
+    parent.textContent = ''; // eslint-disable-line
+    return;
+  }
   const after = end.nextSibling;
+  if (start === parent.firstChild) {
+    while (parent.firstChild !== after) {
+      parent.removeChild(start);
+    }
+    return;
+  }
+
   while (start.nextSibling !== after) {
     parent.removeChild(start.nextSibling);
   }

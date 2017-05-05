@@ -16,7 +16,7 @@ function unmountBatch() {
 }
 
 export default function addToUnmount(nodes) {
-  toUnmount = toUnmount.concat(nodes);
+  Array.prototype.push.apply(toUnmount, nodes);
   if (!waitingTimeout) {
     waitingTimeout = setTimeout(unmountBatch);
   }

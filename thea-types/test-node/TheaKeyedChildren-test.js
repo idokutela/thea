@@ -110,7 +110,7 @@ describe('TheaKeyedChildren tests', function () {
     components.length.should.equal(4);
     components[0].attrs.should.equal('hello');
     components[0].context.should.equal(' the sloop');
-    components[0].unmounted.should.be.true();
+//    components[0].unmounted.should.be.true(); TODO
     components[1].attrs.should.equal('basty');
     components[1].context.should.equal(' the slap');
 //    components[2].unmounted.should.be.true(); TODO
