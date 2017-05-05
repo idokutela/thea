@@ -351,6 +351,19 @@ function reconcileChildren(component, children, context) {
 }
 /* eslint-enable no-param-reassign */
 
+let activeTimeout;
+
+function retainActiveElement() {
+  if (activeTimeout || !isInBrowser) return;
+  const activeElement = document.activeElement;
+  activeTimeout = setTimeout(function resetFocus() { // eslint-disable-line
+    if (activeElement) {
+      activeElement.focus();
+    }
+    activeTimeout = undefined;
+  });
+}
+
 /*
  * RENDER FUNCTION : the actual renderer
  */
@@ -376,12 +389,9 @@ function TheaKeyedChildren(attrs, context) {
   this.attrs = attrs;
   this.context = context;
 
-  const activeElement = isInBrowser && document.activeElement; // Make sure focus is stored
+  retainActiveElement();
   reconcileChildren(this, children, context);
   this[CHILDREN] = children;
-
-  isInBrowser &&                          // eslint-disable-line
-  activeElement && activeElement.focus(); // and focus restored if a node is moved
 
   return this;
 }

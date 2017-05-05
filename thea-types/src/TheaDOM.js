@@ -4,9 +4,8 @@ import {
   firstChild, lastChild, children as getChildren, NODE,
 } from './common/singleChildUtils';
 import {
-  TAGNAME, NAMESPACE, ATTRS, STYLES, CHILD_COMPONENT,
-  extractStyles, extractAttrMap,
-  createNode, updateNodeAttributes, updateNodeStyle, elementToString, unmount,
+  TAGNAME, NAMESPACE, CHILD_COMPONENT, UPDATE_DATA,
+  createNode, updateNodeAttributes, elementToString, unmount,
 } from './common/DOMNodeUtils';
 import namespaceMap from './dom/namespacedElements';
 import makeUnescaped from './makeUnescaped';
@@ -20,8 +19,6 @@ let voidElements = new Set();
 if (process.env.NODE_ENV !== 'production') {
   voidElements = require('./dom/voidElements'); // eslint-disable-line
 }
-
-const copy = x => Object.assign({}, x);
 
 function makeTag(tag) {
   const tagName = tag.toLowerCase();
@@ -37,23 +34,24 @@ function makeTag(tag) {
   };
 
   const ns = namespaceMap.get(tagName);
-  const cloneAttrs = !ns ? copy :
-      attrs => Object.assign({ xmlns: ns }, attrs);
-  const cloneContext = (context, attrs) => Object.assign(
-    {}, context, attrs.xmlns ? { [NAMESPACE]: attrs.xmlns } : {},
-  );
+  const setNS = ns ? (attrs) => {
+    attrs.xmlns = attrs.xmlns || ns; // eslint-disable-line
+    return attrs;
+  } : attrs => attrs;
+  const updateContext = (context, attrs) => (attrs.xmlns ?
+    Object.assign(
+      {}, context, attrs.xmlns ? { [NAMESPACE]: attrs.xmlns } : {},
+    ) : context);
 
   const isVoid = voidElements.has(tagName);
 
   function TheaDOM(attrs = {}, context = {}) {
-    const clonedAttrs = cloneAttrs(attrs);
-    const attrMap = extractAttrMap(clonedAttrs);
-    const styles = extractStyles(attrs);
-    const { ref, children = [] } = attrs;
+    attrs = setNS(attrs); // eslint-disable-line
+    context = updateContext(context, attrs); // eslint-disable-line
+    const ref = attrs.ref;
+    const children = attrs.children || [];
     const isMounting = !this || !this.unmount;
     let result = this;
-
-    context = cloneContext(context, cloneAttrs(attrs)); // eslint-disable-line
 
     if (process.env.node_env !== 'production') {
       if (isVoid && children.length) {
@@ -70,14 +68,20 @@ function makeTag(tag) {
 
       result[NODE] = node;
       result[CHILD_COMPONENT] = childComponent;
-      result[ATTRS] = new Map();
-      result[STYLES] = new Map();
+      result[UPDATE_DATA] = {
+        attrs: {},
+        styles: undefined,
+        bubbled: {},
+        bubbledListeners: {},
+        captured: {},
+        capturedListeners: {},
+        labels: [],
+        styleKeys: [],
+      };
 
       if (node) {
         if (!node.firstChild && childComponent) {
-          const docFrag = document.createDocumentFragment();
-          insertAll(childComponent.children(), undefined, docFrag);
-          node.appendChild(docFrag);
+          insertAll(childComponent.children(), undefined, node);
         }
       }
     } else {
@@ -86,14 +90,11 @@ function makeTag(tag) {
         childComponent.render(children, context);
       }
     }
-
-    updateNodeAttributes(result[NODE], attrMap, result[ATTRS]);
-    updateNodeStyle(result[NODE], styles, result[STYLES]);
-
-    result[ATTRS] = attrMap;
-    result[STYLES] = styles;
     result.attrs = attrs;
     result.context = context;
+
+    updateNodeAttributes(result, attrs);
+
     ref && ref(result[NODE]); // eslint-disable-line
     return result;
   }

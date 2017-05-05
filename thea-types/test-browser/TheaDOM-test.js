@@ -295,7 +295,7 @@ describe('TheaDOM tests', function () {
     focussed.should.be.true();
   });
 
-  it('shoud update capturers', function () {
+  it('shoud update capturers when a capturer is added late', function () {
     const p = DOM('p');
     const input = DOM('input');
     let focussed = false;
@@ -303,15 +303,15 @@ describe('TheaDOM tests', function () {
     const iattrs = { ref: el => (node = el) };
     const pattrs = { children: [[input, iattrs]] };
     const parent = p(pattrs).firstChild();
-    pattrs.capturefocus = () => (focussed = true);
     node.focus();
     focussed.should.be.false();
+    pattrs.capturefocus = () => (focussed = true);
     p.call(parent, pattrs);
     node.focus();
     focussed.should.be.true();
   });
 
-  it('should delete captured event listeners on unmount', function () {
+  it('should update capturers when a capturer is changed', function () {
     const p = DOM('p');
     const input = DOM('input');
     let node;
@@ -328,6 +328,36 @@ describe('TheaDOM tests', function () {
     node.focus();
     focussed1.should.be.false();
     focussed2.should.be.true();
+  });
+
+  it('should update capturers when a capturer is removed', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let node;
+    let focussed = false;
+    const listener = e => e.target && (focussed = !focussed);
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: listener };
+
+    const component = p(pattrs);
+    delete pattrs.capturefocus;
+    component.render(pattrs);
+    node.focus();
+    focussed.should.be.false();
+  });
+
+  it('should remove capturers on unmount', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let node;
+    let focussed = false;
+    const listener = e => e.target && (focussed = !focussed);
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: listener };
+    const component = p(pattrs);
+    component.unmount();
+    node.focus();
+    focussed.should.be.false();
   });
 
   it('should make an unescaped script tag', function () {
