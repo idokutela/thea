@@ -1,6 +1,6 @@
 {
   "name": "thea-types",
-  "version": "0.0.0",
+  "version": "0.0.3",
   "description": "Base components for Thea",
   "main": "index.js",
   "author": "Alexander Kahle",
