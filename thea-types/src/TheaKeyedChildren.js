@@ -382,7 +382,7 @@ function TheaKeyedChildren(attrs, context) {
     result.context = context;
     result[CHILD_COMPONENTS] = childComponents;
     result[CHILDREN] = children;
-    result[EMPTY] = children.length === 0 ? childComponents[0] : emptyElement();
+    result[EMPTY] = children.length === 0 && childComponents[0];
     return result;
   }
 
