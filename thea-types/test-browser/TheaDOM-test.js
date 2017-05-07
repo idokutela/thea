@@ -94,12 +94,14 @@ describe('TheaDOM tests', function () {
     const attrs = {
       class: 'Bah',
       CONTENTEDITABLE: '',
+      autofocus: '',
       children: [[renderChildP, 'fizz']],
     };
     const component = rdiv(attrs);
     const newAttrs = {
       class: 'Bee bah',
       tabindex: '-1',
+      autofocus: undefined,
       children: [[renderChildP, 'bang']],
     };
     component.render(newAttrs, { a: 'fry' });
@@ -113,6 +115,7 @@ describe('TheaDOM tests', function () {
     component.firstChild().getAttribute('class').should.eql('Bee bah');
     component.firstChild().tabIndex.should.equal(-1);
     (component.firstChild().getAttribute('contenteditable') === null).should.be.true();
+    (component.firstChild().getAttribute('autofocus') === null).should.be.true();
     [...component.firstChild().attributes].length.should.equal(2);
   });
 

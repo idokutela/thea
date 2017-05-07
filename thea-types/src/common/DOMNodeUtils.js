@@ -216,7 +216,7 @@ export function updateNodeAttributes(component, attrs) {
         }
         updateData.captured[captured] = val;
       } else {
-        val = '' + val; // eslint-disable-line
+        val = val === undefined ? val : '' + val; // eslint-disable-line
         if (oldAttrs[key] !== val) {
           if (val === undefined) {
             node.removeAttribute(key);
