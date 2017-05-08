@@ -246,6 +246,7 @@ describe('TheaDOM tests', function () {
     const component = div(attrs);
     const child = node;
     component.unmount();
+    (!(child.parentNode)).should.be.true();
     child.click();
     clicked.should.be.false();
   });

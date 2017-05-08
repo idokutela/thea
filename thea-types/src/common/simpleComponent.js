@@ -1,7 +1,6 @@
-import { firstChild, lastChild, children, unmount, NODE } from '../common/singleChildUtils';
+import { firstChild, lastChild, children, unmount, isReady, isMounted } from '../common/singleChildUtils';
 import { insert } from '../dom/domUtils';
-
-export const VALUE = Symbol('value');
+import { MOUNTED, DEBUG } from '../constants';
 
 export default function simpleComponent({
   attrsToValue,
@@ -15,16 +14,17 @@ export default function simpleComponent({
     lastChild,
     children,
     render, // eslint-disable-line
-    toString() { return valueToString(this[VALUE]); },
+    toString() { return valueToString(this[MOUNTED].value); },
+    isReady,
+    isMounted,
     unmount,
   };
 
-  function render(attrs) {
+  function render(attrs, context) {
     const value = attrsToValue(attrs);
 
-    if (!this || !this.unmount) {
+    if (!this || !this[MOUNTED]) {
       const result = Object.create(prototype);
-      result[VALUE] = value;
       let node = this || createNode(value);
 
       if (node && !validateNode(node)) {
@@ -41,14 +41,29 @@ export default function simpleComponent({
         }
         node.textContent = value;
       }
-      result[NODE] = node;
+
+      result[MOUNTED] = {
+        value,
+        node,
+      };
+
+      if (process.env.node_env !== 'production') {
+        result[DEBUG] = {
+          attrs,
+          context,
+        };
+      }
       return result;
     }
 
-    if (this[NODE] && value !== this[VALUE]) {
-      this[NODE].textContent = value;
+    if (this[MOUNTED].node && value !== this[MOUNTED].value) {
+      this[MOUNTED].node.textContent = value;
     }
-    this[VALUE] = value;
+    this[MOUNTED].value = value;
+    if (process.env.node_env !== 'production') {
+      this[DEBUG].attrs = attrs;
+      this[DEBUG].context = context;
+    }
     return this;
   }
 

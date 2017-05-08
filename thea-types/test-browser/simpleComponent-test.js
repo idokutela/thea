@@ -82,7 +82,9 @@ describe('Simple Component tests', function () {
     const c = component('bla');
     document.body.appendChild(c.firstChild());
     c.firstChild().parentNode.should.equal(document.body);
+    c.isMounted().should.be.true();
     c.unmount();
+    c.isMounted().should.be.false();
     [...document.body.childNodes].length.should.equal(0);
   });
 

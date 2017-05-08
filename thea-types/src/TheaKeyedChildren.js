@@ -2,12 +2,13 @@
 
 import TheaText from './TheaText';
 import { insertAll, insert, removeAll } from './dom/domUtils';
-import { TRANSPARENT } from './constants';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
 import emptyElement from './emptyElement';
 import isInBrowser from './dom/isInBrowser';
 import {
-  EMPTY, CHILD_COMPONENTS, firstChild, lastChild, children as getChildren,
-  unmount as unmountRaw, toString, mountAll,
+  firstChild, lastChild, children as getChildren,
+  unmount as unmountRaw, toString, mountAll, isReady,
+  isMounted,
 } from './common/multiChildUtils';
 import addToUnmount from './common/unmountDaemon';
 
@@ -23,8 +24,6 @@ import addToUnmount from './common/unmountDaemon';
  *  - RECONCILE : the heart of the component: reconciles children
  *  - RENDER FUNCTION : the actual renderer
  */
-
-export const CHILDREN = Symbol.for('children');
 
 /*
  * REGULARISING FUNCTIONS : utilities to make sure the list
@@ -64,15 +63,18 @@ const prototype = {
   render: TheaKeyedChildren, // eslint-disable-line
   toString,
   unmount: unmountRaw,
+  isReady,
+  isMounted,
 };
 
 // The special case when there are no children to reconcile
 /* eslint-disable no-param-reassign, no-plusplus, no-unused-expressions */
 function clearAllChildren(component, children) {
-  const oldChildren = component[CHILDREN];
   const last = component.lastChild();
   const parent = last && last.parentNode;
-  const childComponents = component[CHILD_COMPONENTS];
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
+  const childComponents = mounted.childComponents;
   let insertionPoint;
 
   if (children.length) return false;
@@ -84,23 +86,24 @@ function clearAllChildren(component, children) {
   }
   addToUnmount(childComponents);
 
-  component[EMPTY] = component[EMPTY] || emptyElement();
-  component[CHILD_COMPONENTS] = [component[EMPTY]];
-  insert(component[EMPTY].firstChild(), insertionPoint, parent);
-  return component[CHILD_COMPONENTS];
+  mounted.empty = mounted.empty || emptyElement();
+  mounted.childComponents = [mounted.empty];
+  insert(mounted.empty.firstChild(), insertionPoint, parent);
+  return mounted.childComponents;
 }
 
 // The special case when all children are to be added
 function addAllChildren(component, children, context) {
-  const oldChildren = component[CHILDREN];
   const front = component.firstChild();
   const parent = front && front.parentNode;
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
   if (oldChildren.length) return false;
 
-  component[CHILD_COMPONENTS] = mountAll(undefined, children, context);
+  mounted.childComponents = mountAll(undefined, children, context);
   parent && insertAll(component.children(), front, parent); // eslint-disable-line
-  component[EMPTY] && component[EMPTY].unmount();
-  return component[CHILD_COMPONENTS];
+  mounted.empty && parent && parent.removeChild(mounted.empty.firstChild());
+  return mounted.childComponents;
 }
 
 function reconcileComponents(component, oldNode, newNode, parent, context, unmountQueue) {
@@ -145,8 +148,9 @@ function reconcileAndMove(component, oldNode, newNode, parent,
 
 // General reconciliation
 function reconcileGenerally(component, children, context) {
-  const oldChildren = component[CHILDREN];
-  const oldChildComponents = component[CHILD_COMPONENTS];
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
+  const oldChildComponents = mounted.childComponents;
   const childComponents = [];
   const first = component.firstChild();
   const parent = first && first.parentNode;
@@ -344,7 +348,7 @@ function reconcileGenerally(component, children, context) {
  * RECONCILE: reconciling child lists. The heart of the component.
  */
 function reconcileChildren(component, children, context) {
-  component[CHILD_COMPONENTS] =
+  component[MOUNTED].childComponents =
     clearAllChildren(component, children, context) ||
     addAllChildren(component, children, context) ||
     reconcileGenerally(component, children, context);
@@ -373,25 +377,33 @@ function TheaKeyedChildren(attrs, context) {
   const children = normaliseChildren(attrs);
 
   // Mount if necessary
-  if (!this || !this.unmount) {
+  if (!this || !this[MOUNTED]) {
     const childrenToMount = children.length ?
       children : [[emptyElement]];
     const childComponents = mountAll(this, childrenToMount, context);
     const result = Object.create(prototype);
-    result.attrs = attrs;
-    result.context = context;
-    result[CHILD_COMPONENTS] = childComponents;
-    result[CHILDREN] = children;
-    result[EMPTY] = children.length === 0 && childComponents[0];
+    if (process.env.node_env !== 'production') {
+      result[DEBUG] = {
+        attrs, context,
+      };
+    }
+    result[MOUNTED] = {
+      childComponents,
+      children,
+      empty: children.length === 0 && childComponents[0],
+    };
     return result;
   }
 
-  this.attrs = attrs;
-  this.context = context;
+
+  if (process.env.node_env !== 'production') {
+    this[DEBUG].attrs = attrs;
+    this[DEBUG].context = context;
+  }
 
   retainActiveElement();
   reconcileChildren(this, children, context);
-  this[CHILDREN] = children;
+  this[MOUNTED].children = children;
 
   return this;
 }

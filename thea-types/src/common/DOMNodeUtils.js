@@ -1,13 +1,9 @@
 import camelToDash from '../dom/camelToDash';
 import isInBrowser from '../dom/isInBrowser';
-import { NODE } from './singleChildUtils';
 import addToUnmount from './unmountDaemon';
-
+import { MOUNTED } from '../constants';
 
 export const NAMESPACE = Symbol('thea/dom namespace');
-export const TAGNAME = Symbol('thea/tagname');
-export const UPDATE_DATA = Symbol('thea/update data');
-export const CHILD_COMPONENT = Symbol('thea/child component');
 
 let toStringNoDOM = () => { throw new Error('Please import domKnowledge to use TheaDOM outside of the DOM.'); };
 
@@ -16,13 +12,17 @@ export function setToString(toString) {
 }
 
 export function elementToString() {
-  const updateData = this[UPDATE_DATA];
+  if (!this[MOUNTED]) {
+    throw new Error('Attempting to render an unmounted component.');
+  }
 
-  return this[NODE] ?
-    this[NODE].outerHTML :
+  const mounted = this[MOUNTED];
+
+  return mounted.node ?
+    mounted.node.outerHTML :
     toStringNoDOM(
-      this[TAGNAME], updateData.attrs, updateData.styles,
-      this[CHILD_COMPONENT] && this[CHILD_COMPONENT].toString(),
+      this.tagName, mounted.attrs, mounted.styles,
+      mounted.childComponent && mounted.childComponent.toString(),
     );
 }
 
@@ -35,41 +35,54 @@ export const getCapturedEventName = (key) => {
   return captures && captures[1];
 }; // (key.startsWith('capture') ? key.substr(7) : undefined);
 
-export function unmount(isDangling) {
-  this.attrs && this.attrs.ref && this.attrs.ref(null); // eslint-disable-line
 
-  if (!this[NODE]) {
-    addToUnmount(this[CHILD_COMPONENT]);
-    return;
-  }
+export function finaliseUnmount() {
+  this.childComponent && addToUnmount(this.childComponent); // eslint-disable-line
+  this.childComponent = undefined;
+  if (!this.node) return;
 
-  const parent = this[NODE].parentNode;
-  const isAttached = !isDangling && parent;
+  const node = this.node;
+  this.node = undefined;
 
-  if (isAttached) {
-    parent.removeChild(this[NODE]);
-    addToUnmount(this);
-    this[CHILD_COMPONENT] && addToUnmount(this[CHILD_COMPONENT]); // eslint-disable-line
-    return;
-  }
-
-  if (!this[NODE]) return;
-  const updateData = this[UPDATE_DATA];
-  const bubbled = updateData.bubbledListeners;
-  const captured = updateData.capturedListeners;
+  const bubbled = this.bubbledListeners;
+  const captured = this.capturedListeners;
   const bubbledKeys = Object.keys(bubbled);
   const capturedKeys = Object.keys(captured);
 
   /* eslint-disable no-plusplus */
   for (let i = 0; i < bubbledKeys.length; i++) {
     const key = bubbledKeys[i];
-    this[NODE].removeEventListener(key, bubbled[key]);
+    node.removeEventListener(key, bubbled[key]);
   }
   for (let i = 0; i < capturedKeys.length; i++) {
     const key = capturedKeys[i];
-    this[NODE].removeEventListener(key, captured[key], true);
+    node.removeEventListener(key, captured[key], true);
   }
   /* eslint-enable no-plusplus */
+}
+
+export function unmount(isDangling) {
+  this.attrs && this.attrs.ref && this.attrs.ref(null); // eslint-disable-line
+  const mounted = this[MOUNTED];
+  this[MOUNTED] = undefined;
+  if (!mounted) {
+    return;
+  }
+
+  if (!mounted.node) {
+    mounted.childComponent && addToUnmount(mounted.childComponent); // eslint-disable-line
+    return;
+  }
+
+  const parent = mounted.node.parentNode;
+  const isAttached = !isDangling && parent;
+
+  if (isAttached) {
+    parent.removeChild(mounted.node);
+  }
+  mounted.bubbled = {};
+  mounted.captured = {};
+  addToUnmount(mounted);
 }
 
 export const createNode = (tagName, context) => isInBrowser && (
@@ -79,28 +92,28 @@ export const createNode = (tagName, context) => isInBrowser && (
   );
 
 const noop = () => {};
-const makeListener = (type, listeners) => (event) => {
-  const listener = listeners[type] || noop;
+const makeListener = (type, listeners, capOrBub) => (event) => {
+  const listener = listeners[capOrBub][type] || noop;
   return listener(event);
 };
 
 /* eslint-disable no-plusplus, no-cond-assign */
 function updateStyle(component, styles) {
-  const node = component[NODE];
-  const updateData = component[UPDATE_DATA];
-  let oldStyles = updateData.styles || {};
+  const mounted = component[MOUNTED];
+  const node = mounted.node;
+  let oldStyles = mounted.styles || {};
   const newStyles = {};
   const newKeys = [];
   if (oldStyles === styles) return;
   if (styles === undefined) {
     node.removeAttribute('style');
-    updateData.styles = undefined;
-    updateData.styleKeys = [];
+    mounted.styles = undefined;
+    mounted.styleKeys = [];
     return;
   }
   if (typeof styles === 'string') {
-    updateData.styles = styles;
-    updateData.styleKeys = [];
+    mounted.styles = styles;
+    mounted.styleKeys = [];
     node.setAttribute('style', styles);
     return;
   }
@@ -135,8 +148,8 @@ function updateStyle(component, styles) {
     oldStyles[key] = undefined;
   }
 
-  if (updated < updateData.styleKeys.length) {
-    const styleKeys = updateData.styleKeys;
+  if (updated < mounted.styleKeys.length) {
+    const styleKeys = mounted.styleKeys;
     for (let i = 0; i < styleKeys.length; i++) {
       const key = styleKeys[i];
       if (oldStyles[key]) {
@@ -145,8 +158,8 @@ function updateStyle(component, styles) {
     }
   }
 
-  updateData.styles = newStyles;
-  updateData.styleKeys = newKeys;
+  mounted.styles = newStyles;
+  mounted.styleKeys = newKeys;
 }
 
 /* eslint-disable no-continue, no-param-reassign, no-plusplus, prefer-template */
@@ -171,13 +184,14 @@ function updateNodeAttributesUnmounted(component, attrs) {
       newAttrs[key] = '' + val;
     }
   }
-  component[UPDATE_DATA].attrs = newAttrs;
-  component[UPDATE_DATA].styles = newStyles;
+  component[MOUNTED].attrs = newAttrs;
+  component[MOUNTED].styles = newStyles;
 }
 /* eslint-enable */
 
 export function updateNodeAttributes(component, attrs) {
-  const node = component[NODE];
+  const mounted = component[MOUNTED];
+  const node = mounted.node;
   if (!node) {
     updateNodeAttributesUnmounted(component, attrs);
     return;
@@ -185,9 +199,8 @@ export function updateNodeAttributes(component, attrs) {
   const keys = Object.keys(attrs);
   let updated = 0;
   const newAttrs = {};
-  const updateData = component[UPDATE_DATA];
-  const oldAttrs = updateData.attrs;
-  const labels = updateData.labels;
+  const oldAttrs = mounted.attrs;
+  const labels = mounted.labels;
   const newLabels = [];
 
   for (let i = 0; i < keys.length; i++) {
@@ -202,19 +215,19 @@ export function updateNodeAttributes(component, attrs) {
       if (key === 'style') {
         updateStyle(component, val);
       } else if (captured = getBubbledEventName(key)) {
-        if (!updateData.bubbledListeners[captured] && val) {
-          const listener = makeListener(captured, updateData.bubbled);
+        if (!mounted.bubbledListeners[captured] && val) {
+          const listener = makeListener(captured, mounted, 'bubbled');
           node.addEventListener(captured, listener);
-          updateData.bubbledListeners[captured] = listener;
+          mounted.bubbledListeners[captured] = listener;
         }
-        updateData.bubbled[captured] = val;
+        mounted.bubbled[captured] = val;
       } else if (captured = getCapturedEventName(key)) {
-        if (!updateData.capturedListeners[captured] && val) {
-          const listener = makeListener(captured, updateData.captured);
+        if (!mounted.capturedListeners[captured] && val) {
+          const listener = makeListener(captured, mounted, 'captured');
           node.addEventListener(captured, listener, true);
-          updateData.capturedListeners[captured] = listener;
+          mounted.capturedListeners[captured] = listener;
         }
-        updateData.captured[captured] = val;
+        mounted.captured[captured] = val;
       } else {
         val = val === undefined ? val : '' + val; // eslint-disable-line
         if (oldAttrs[key] !== val) {
@@ -241,17 +254,17 @@ export function updateNodeAttributes(component, attrs) {
       const key = labels[i];
       if (oldAttrs[key] !== undefined) {
         if (captured = getBubbledEventName(key)) {
-          updateData.bubbled[captured] = undefined;
+          mounted.bubbled[captured] = undefined;
         } else if (captured = getCapturedEventName(key)) {
-          updateData.captured[captured] = undefined;
+          mounted.captured[captured] = undefined;
         } else {
           node.removeAttribute(key);
         }
       }
     }
   }
-  updateData.attrs = newAttrs;
-  updateData.labels = newLabels;
+  mounted.attrs = newAttrs;
+  mounted.labels = newLabels;
 }
 
 /* eslint-enable no-plusplus, no-cond-assign */

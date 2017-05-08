@@ -1,6 +1,18 @@
 import EmptyElement from '../src/emptyElement';
 
 describe('Empty element tests', function () {
+  before(function () {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
+  afterEach(function () {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
   it('should make an empty element with the correct comment node', function () {
     const el = EmptyElement();
     const children = [...el.children()];
@@ -33,8 +45,10 @@ describe('Empty element tests', function () {
     document.body.appendChild(node);
     let el = EmptyElement.call(node);
     el.firstChild().nextSibling.should.equal(node);
-    document.body.removeChild(node);
     el.unmount();
+    document.body.removeChild(node);
+    console.log(document.body.innerHTML);
+    (!(document.body.firstChild)).should.be.true();
     node = document.createComment('Hello');
     el = EmptyElement.call(node);
     el.firstChild().should.equal(node);
@@ -55,6 +69,6 @@ describe('Empty element tests', function () {
     [...document.body.childNodes].length.should.equal(1);
     el.unmount();
     [...document.body.childNodes].length.should.equal(0);
-    (el.firstChild().parentNode === null).should.be.true();
+    el.isMounted().should.be.false();
   });
 });

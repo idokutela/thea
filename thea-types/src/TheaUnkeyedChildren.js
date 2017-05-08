@@ -1,7 +1,7 @@
-import { TRANSPARENT } from './constants';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
 import {
-  EMPTY, CHILD_COMPONENTS, firstChild, lastChild,
-  children, toString, unmount, mountAll,
+  firstChild, lastChild, isMounted,
+  children, toString, unmount, mountAll, isReady,
 } from './common/multiChildUtils';
 import emptyElement from './emptyElement';
 import { insert, insertAll, removeAll } from './dom/domUtils';
@@ -14,6 +14,8 @@ const prototype = {
   toString,
   unmount,
   render: TheaUnkeyedChildren, // eslint-disable-line
+  isReady,
+  isMounted,
 };
 
 const min = (a, b) => (a < b ? a : b);
@@ -26,31 +28,43 @@ function TheaUnkeyedChildren(attrs = [], context) {
     }
   }
 
-  if (!this || !this.unmount) {
+  if (!this || !this[MOUNTED]) {
     const result = Object.create(prototype);
-    result.attrs = attrs;
-    result.context = context;
+    if (process.env.node_env !== 'production') {
+      result[DEBUG] = {
+        attrs,
+        context,
+      };
+    }
     if (attrs.length) {
-      result[CHILD_COMPONENTS] = mountAll(this, attrs, context);
-      result[EMPTY] = emptyElement();
+      result[MOUNTED] = {
+        childComponents: mountAll(this, attrs, context),
+        empty: emptyElement(),
+      };
       return result;
     }
-    result[CHILD_COMPONENTS] = [emptyElement.call(this)];
-    result[EMPTY] = result[CHILD_COMPONENTS][0];
+    const empty = emptyElement.call(this);
+    result[MOUNTED] = {
+      childComponents: [empty],
+      empty,
+    };
     return result;
   }
 
-  this.attrs = attrs;
-  this.context = context;
+  if (process.env.node_env !== 'production') {
+    this.attrs = attrs;
+    this.context = context;
+  }
 
   const last = this.lastChild();
   const parent = last && last.parentNode;
 
-  if (this[CHILD_COMPONENTS][0] === this[EMPTY]) { // if currently empty
+  const mounted = this[MOUNTED];
+  if (mounted.childComponents[0] === mounted.empty) { // if currently empty
     if (!attrs.length) return this;
-    this[CHILD_COMPONENTS] = mountAll(undefined, attrs, context);
-    parent && insertAll(this.children(), this[EMPTY].firstChild(), parent); // eslint-disable-line
-    this[EMPTY].unmount();
+    mounted.childComponents = mountAll(undefined, attrs, context);
+    parent && insertAll(this.children(), mounted.empty.firstChild(), parent); // eslint-disable-line
+    parent && parent.removeChild(mounted.empty.firstChild()); // eslint-disable-line
     return this;
   }
 
@@ -58,35 +72,33 @@ function TheaUnkeyedChildren(attrs = [], context) {
     if (parent) {
       const next = last.nextSibling;
       removeAll(this.firstChild(), last, parent);
-      insert(this[EMPTY].firstChild(), next, parent);
+      insert(mounted.empty.firstChild(), next, parent);
     }
-    addToUnmount(this[CHILD_COMPONENTS]);
-    this[CHILD_COMPONENTS] = [this[EMPTY]];
+    addToUnmount(mounted.childComponents);
+    mounted.childComponents = [mounted.empty];
     return this;
   }
 
-  const diff = attrs.length - this[CHILD_COMPONENTS].length;
-  const toUpdate = min(attrs.length, this[CHILD_COMPONENTS].length);
-  const childComponents = [];
+  const diff = attrs.length - mounted.childComponents.length;
+  const toUpdate = min(attrs.length, mounted.childComponents.length);
   for (let i = 0; i < toUpdate; i++) {
-    childComponents[i] = attrs[i][0].call(this[CHILD_COMPONENTS][i], attrs[i][1], context);
+    attrs[i][0].call(mounted.childComponents[i], attrs[i][1], context);
   }
   if (diff < 0) { // remove
     if (parent) {
-      const first = this[CHILD_COMPONENTS][toUpdate].firstChild();
+      const first = mounted.childComponents[toUpdate].firstChild();
       removeAll(first, last, parent);
     }
-    addToUnmount(this[CHILD_COMPONENTS].slice(toUpdate));
+    addToUnmount(mounted.childComponents.splice(toUpdate, -diff));
   } else if (diff > 0) {
     const toAdd = [];
     const end = parent && this.lastChild().nextSibling;
     for (let i = toUpdate; i < attrs.length; i++) {
-      childComponents[i] = attrs[i][0].call(undefined, attrs[i][1], context);
-      parent && Array.prototype.push.apply(toAdd, childComponents[i].children()); // eslint-disable-line
+      mounted.childComponents[i] = attrs[i][0].call(undefined, attrs[i][1], context);
+      parent && Array.prototype.push.apply(toAdd, mounted.childComponents[i].children()); // eslint-disable-line
     }
     parent && insertAll(toAdd, end, parent); // eslint-disable-line
   }
-  this[CHILD_COMPONENTS] = childComponents;
 
   return this;
 }

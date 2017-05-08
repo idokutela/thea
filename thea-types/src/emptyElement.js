@@ -1,5 +1,5 @@
-import { firstChild, lastChild, children, unmount, NODE } from './common/singleChildUtils';
-import { COMMENT } from './constants';
+import { firstChild, lastChild, children, unmount, isReady, isMounted } from './common/singleChildUtils';
+import { COMMENT, MOUNTED } from './constants';
 import isInBrowser from './dom/isInBrowser';
 import { insert } from './dom/domUtils';
 
@@ -16,10 +16,12 @@ const prototype = {
   unmount,
   toString() { return `<!--${placeholderContent}-->`; },
   render: EmptyElement, // eslint-disable-line
+  isReady,
+  isMounted,
 };
 
 export default function EmptyElement() {
-  if (this && this.unmount) { return this; }
+  if (this && this[MOUNTED]) { return this; }
 
   let node = this || placeholder();
 
@@ -43,6 +45,6 @@ export default function EmptyElement() {
   /* eslint-enable no-console */
 
   const result = Object.create(prototype);
-  result[NODE] = node;
+  result[MOUNTED] = { node };
   return result;
 }

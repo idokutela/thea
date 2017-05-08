@@ -1,8 +1,9 @@
-import { TRANSPARENT } from './constants';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
 import {
-  CHILD_COMPONENTS, firstChild, lastChild,
+  firstChild, lastChild,
   children, toString, unmount, mountAll,
   updateEach,
+  isReady, isMounted,
 } from './common/multiChildUtils';
 
 const prototype = {
@@ -12,6 +13,8 @@ const prototype = {
   toString,
   render: TheaView, // eslint-disable-line
   unmount,
+  isReady,
+  isMounted,
 };
 
 /**
@@ -31,23 +34,23 @@ function TheaView(attrs = [], context) {
     }
   }
 
-  if (!this || !this.unmount) { // first render
+  if (!this || !this[MOUNTED]) { // first render
     const retval = Object.create(prototype);
-    retval[CHILD_COMPONENTS] = mountAll(this, attrs, context);
-    retval.attrs = attrs;
-    retval.context = context;
+    retval[MOUNTED] = { childComponents: mountAll(this, attrs, context) };
+    if (process.env.node_env !== 'production') {
+      retval[DEBUG] = { attrs, context };
+    }
     return retval;
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    if (attrs.length !== this[CHILD_COMPONENTS].length) {
+    if (attrs.length !== this[MOUNTED].childComponents.length) {
       throw new Error('The child types do not match up. Views must have a consistent structure.');
     }
     // Question: should I also check the actual child structure?
+    this[DEBUG] = { attrs, context };
   }
 
-  this.attrs = children;
-  this.context = context;
   updateEach(this, attrs, context);
 
   return this;

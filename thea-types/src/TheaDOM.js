@@ -1,14 +1,15 @@
 import TheaView from './TheaView';
 import { insertAll } from './dom/domUtils';
 import {
-  firstChild, lastChild, children as getChildren, NODE,
+  firstChild, lastChild, children as getChildren, isReady, isMounted,
 } from './common/singleChildUtils';
 import {
-  TAGNAME, NAMESPACE, CHILD_COMPONENT, UPDATE_DATA,
+  NAMESPACE, finaliseUnmount,
   createNode, updateNodeAttributes, elementToString, unmount,
 } from './common/DOMNodeUtils';
 import namespaceMap from './dom/namespacedElements';
 import makeUnescaped from './makeUnescaped';
+import { MOUNTED, DEBUG } from './constants';
 
 const tags = new Map();
 
@@ -30,7 +31,9 @@ function makeTag(tag) {
     toString: elementToString,
     unmount,
     render: TheaDOM, // eslint-disable-line
-    [TAGNAME]: tagName,
+    tagName,
+    isReady,
+    isMounted,
   };
 
   const ns = namespaceMap.get(tagName);
@@ -50,7 +53,7 @@ function makeTag(tag) {
     context = updateContext(context, attrs); // eslint-disable-line
     const ref = attrs.ref;
     const children = attrs.children || [];
-    const isMounting = !this || !this.unmount;
+    const isMounting = !this || !this[MOUNTED];
     let result = this;
 
     if (process.env.node_env !== 'production') {
@@ -66,9 +69,9 @@ function makeTag(tag) {
         TheaView.call(node && node.firstChild, children, context) :
         undefined;
 
-      result[NODE] = node;
-      result[CHILD_COMPONENT] = childComponent;
-      result[UPDATE_DATA] = {
+      result[MOUNTED] = {
+        node,
+        childComponent,
         attrs: {},
         styles: undefined,
         bubbled: {},
@@ -77,7 +80,14 @@ function makeTag(tag) {
         capturedListeners: {},
         labels: [],
         styleKeys: [],
+        unmount: finaliseUnmount,
       };
+
+      if (process.env.node_env !== 'production') {
+        result[DEBUG] = {
+          attrs, context, tagName,
+        };
+      }
 
       if (node) {
         if (!node.firstChild && childComponent) {
@@ -85,17 +95,20 @@ function makeTag(tag) {
         }
       }
     } else {
-      const childComponent = this[CHILD_COMPONENT];
+      const childComponent = this[MOUNTED].childComponent;
       if (childComponent) {
         childComponent.render(children, context);
       }
     }
-    result.attrs = attrs;
-    result.context = context;
+
+    if (process.env.node_env !== 'production') {
+      result[DEBUG].attrs = attrs;
+      result[DEBUG].context = context;
+    }
 
     updateNodeAttributes(result, attrs);
 
-    ref && ref(result[NODE]); // eslint-disable-line
+    ref && ref(result[MOUNTED].node); // eslint-disable-line
     return result;
   }
 

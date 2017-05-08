@@ -1,24 +1,23 @@
 import addToUnmount from './unmountDaemon';
 import { removeAll } from '../dom/domUtils';
+import { MOUNTED } from '../constants';
 
-export const CHILD_COMPONENTS = Symbol('thea/child_components');
-export const EMPTY = Symbol('thea/empty');
-
+export { isMounted } from './singleChildUtils';
 
 export function firstChild() {
-  return this[CHILD_COMPONENTS].length ?
-    this[CHILD_COMPONENTS][0].firstChild() : undefined;
+  return this[MOUNTED].childComponents.length ?
+    this[MOUNTED].childComponents[0].firstChild() : undefined;
 }
 
 export function lastChild() {
-  return this[CHILD_COMPONENTS].length ?
-    this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild() :
+  return this[MOUNTED].childComponents.length ?
+    this[MOUNTED].childComponents[this[MOUNTED].childComponents.length - 1].lastChild() :
     undefined;
 }
 
 /* eslint-disable no-shadow, no-plusplus */
 export function children() {
-  const childComponents = this[CHILD_COMPONENTS];
+  const childComponents = this[MOUNTED].childComponents;
   const result = [];
   for (let i = 0; i < childComponents.length; i++) {
     const cs = childComponents[i].children();
@@ -53,18 +52,20 @@ export function unmount(isDangling) {
   if (attached) {
     removeAll(first, this.lastChild(), parent);
   }
-  addToUnmount(this[CHILD_COMPONENTS]);
+  addToUnmount(this[MOUNTED].childComponents);
+  this[MOUNTED].childComponents = undefined;
+  this[MOUNTED] = undefined;
 }
 
 export function updateEach(component, children, context) {
-  const childComponents = component[CHILD_COMPONENTS];
+  const childComponents = component[MOUNTED].childComponents;
   for (let i = 0; i < childComponents.length; i++) {
     childComponents[i] = children[i][0].call(childComponents[i], children[i][1], context);
   }
 }
 
 export function toString() {
-  const childComponents = this[CHILD_COMPONENTS];
+  const childComponents = this[MOUNTED].childComponents;
   let result = '';
   for (let i = 0; i < childComponents.length; i++) {
     result += childComponents[i].toString();
@@ -72,9 +73,8 @@ export function toString() {
   return result;
 }
 
-/* eslint-enable no-shadow */
-export function fakeThis(childComponents) {
-  return {
-    [CHILD_COMPONENTS]: childComponents,
-  };
+export function isReady() {
+  return Promise
+    .all(this[MOUNTED].childComponents.map(x => x.isReady()))
+    .reduce((r, x) => r && x, true);
 }
