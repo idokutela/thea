@@ -1,7 +1,7 @@
 {
-  "name": "thea-view",
+  "name": "thea-mount",
   "version": "0.0.0",
-  "description": "Turns VDOM into a pure component",
+  "description": "Mounts Thea components into DOM nodes",
   "main": "index.js",
   "author": "Alexander Kahle",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "jsdom": "^9.12.0",
     "mocha": "^3.2.0",
     "should": "^11.2.1",
-    "sinon": "^2.1.0"
+    "sinon": "^2.1.0",
+    "thea": "^0.0.12"
   },
   "scripts": {
     "clean": "rmtrash lib",
