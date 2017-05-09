@@ -1,4 +1,6 @@
 import DOM from '../src/TheaDOM';
+import { setUnmountListener } from '../src/common/unmountDaemon';
+import { MOUNTED } from '../src/constants';
 
 describe('TheaDOM tests', function () {
   let components;
@@ -246,9 +248,12 @@ describe('TheaDOM tests', function () {
     const component = div(attrs);
     const child = node;
     component.unmount();
-    (!(child.parentNode)).should.be.true();
-    child.click();
-    clicked.should.be.false();
+    return new Promise(res => setTimeout(() => {
+      (!(child.parentNode)).should.be.true();
+      child.click();
+      clicked.should.be.false();
+      res();
+    }));
   });
 
   it('should unmount itself from its parent', function () {
@@ -360,8 +365,11 @@ describe('TheaDOM tests', function () {
     const pattrs = { children: [[input, iattrs]], capturefocus: listener };
     const component = p(pattrs);
     component.unmount();
-    node.focus();
-    focussed.should.be.false();
+    return new Promise(res => setTimeout(() => {
+      node.focus();
+      focussed.should.be.false();
+      res();
+    }));
   });
 
   it('should make an unescaped script tag', function () {
@@ -406,5 +414,27 @@ describe('TheaDOM tests', function () {
     componentCopy.firstChild().should.equal(node);
     node.getAttribute('type').should.equal('text/ms');
     node.textContent.should.equal('a');
+  });
+
+  it('should eventually unmount fully', function () {
+    const p = DOM('p');
+    const div = DOM('div');
+    const attrs = { children: [[p], [p]] };
+    const component = div(attrs);
+    const childComponents = component[MOUNTED].childComponents;
+    document.body.appendChild(component.firstChild());
+    let resolvePromise;
+    const afterUnmountPromise = new Promise((res) => {
+      resolvePromise = res;
+    });
+    setUnmountListener(() => {
+      childComponents.length.should.equal(2);
+      childComponents[0].isMounted().should.be.false();
+      childComponents[1].isMounted().should.be.false();
+      component.isMounted().should.be.false();
+      setTimeout(resolvePromise, 10);
+    });
+    component.unmount();
+    return afterUnmountPromise;
   });
 });

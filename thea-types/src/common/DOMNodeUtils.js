@@ -2,6 +2,7 @@ import camelToDash from '../dom/camelToDash';
 import isInBrowser from '../dom/isInBrowser';
 import addToUnmount from './unmountDaemon';
 import { MOUNTED } from '../constants';
+import { toString as childrenToString } from './multiChildUtils';
 
 export const NAMESPACE = Symbol('thea/dom namespace');
 
@@ -22,7 +23,7 @@ export function elementToString() {
     mounted.node.outerHTML :
     toStringNoDOM(
       this.tagName, mounted.attrs, mounted.styles,
-      mounted.childComponent && mounted.childComponent.toString(),
+      mounted.childComponents && childrenToString.call(this),
     );
 }
 
@@ -37,8 +38,6 @@ export const getCapturedEventName = (key) => {
 
 
 export function finaliseUnmount() {
-  this.childComponent && addToUnmount(this.childComponent); // eslint-disable-line
-  this.childComponent = undefined;
   if (!this.node) return;
 
   const node = this.node;
@@ -69,8 +68,10 @@ export function unmount(isDangling) {
     return;
   }
 
+  mounted.childComponents && addToUnmount(mounted.childComponents); // eslint-disable-line
+  mounted.childComponents = undefined;
+
   if (!mounted.node) {
-    mounted.childComponent && addToUnmount(mounted.childComponent); // eslint-disable-line
     return;
   }
 
@@ -82,7 +83,7 @@ export function unmount(isDangling) {
   }
   mounted.bubbled = {};
   mounted.captured = {};
-  addToUnmount(mounted);
+  addToUnmount([mounted]);
 }
 
 export const createNode = (tagName, context) => isInBrowser && (

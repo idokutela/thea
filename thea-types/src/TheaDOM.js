@@ -1,8 +1,8 @@
-import TheaView from './TheaView';
 import { insertAll } from './dom/domUtils';
 import {
   firstChild, lastChild, children as getChildren, isReady, isMounted,
 } from './common/singleChildUtils';
+import { updateEach, mountAll, children as allChildren } from './common/multiChildUtils';
 import {
   NAMESPACE, finaliseUnmount,
   createNode, updateNodeAttributes, elementToString, unmount,
@@ -65,13 +65,14 @@ function makeTag(tag) {
     if (isMounting) {
       result = Object.create(prototype);
       const node = this || createNode(tagName, context);
-      const childComponent = children.length ?
-        TheaView.call(node && node.firstChild, children, context) :
+      const first = this && this.firstChild;
+      const childComponents = children.length ?
+        mountAll(first, children, context) :
         undefined;
 
       result[MOUNTED] = {
         node,
-        childComponent,
+        childComponents,
         attrs: {},
         styles: undefined,
         bubbled: {},
@@ -90,15 +91,12 @@ function makeTag(tag) {
       }
 
       if (node) {
-        if (!node.firstChild && childComponent) {
-          insertAll(childComponent.children(), undefined, node);
+        if (!node.firstChild && childComponents) {
+          insertAll(allChildren.call(result), undefined, node);
         }
       }
-    } else {
-      const childComponent = this[MOUNTED].childComponent;
-      if (childComponent) {
-        childComponent.render(children, context);
-      }
+    } else if (this[MOUNTED].childComponents) {
+      updateEach(this, children, context);
     }
 
     if (process.env.node_env !== 'production') {

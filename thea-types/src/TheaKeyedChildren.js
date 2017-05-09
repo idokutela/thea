@@ -278,7 +278,7 @@ function reconcileGenerally(component, children, context) {
       const back = oldChildComponents[oldBackIndex].lastChild();
       removeAll(front, back, parent);
     }
-    Array.prototype.push.apply(unmountQueue, oldChildComponents.slice(oldFrontIndex));
+    Array.prototype.push.apply(unmountQueue, oldChildComponents.slice(oldFrontIndex, oldBackIndex));
     addToUnmount(unmountQueue);
     return childComponents;
   }
