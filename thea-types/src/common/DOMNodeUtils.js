@@ -127,10 +127,8 @@ function updateStyle(component, styles) {
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    if (!Object.hasOwnProperty.call(styles, key)) {
-      continue; // eslint-disable-line
-    }
-    const inOldStyles = oldStyles[key] || oldStyles.hasOwnProperty[key];
+    if (!Object.hasOwnProperty.call(styles, key)) continue; // eslint-disable-line
+    const inOldStyles = oldStyles[key] || Object.hasOwnProperty.call(oldStyles, key);
 
     let val = styles[key];
     val = val === undefined ? val : '' + val; // eslint-disable-line
@@ -207,11 +205,11 @@ export function updateNodeAttributes(component, attrs) {
   for (let i = 0; i < keys.length; i++) {
     let key = keys[i];
 
-    if (Object.hasOwnProperty.call(attrs, keys[i]) && key !== 'ref' && key !== 'children') {
+    if (Object.hasOwnProperty.call(attrs, key) && key !== 'ref' && key !== 'children') {
       let val = attrs[key];
       key = key.toLowerCase();
       let captured;
-      const inOldAttrs = oldAttrs[key] !== undefined || oldAttrs.hasOwnProperty[key];
+      const inOldAttrs = oldAttrs[key] !== undefined || Object.hasOwnProperty.call(oldAttrs, key);
 
       if (key === 'style') {
         updateStyle(component, val);
