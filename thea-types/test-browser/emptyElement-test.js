@@ -1,6 +1,18 @@
 import EmptyElement from '../src/emptyElement';
 
 describe('Empty element tests', function () {
+  before(function () {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
+  afterEach(function () {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
   it('should make an empty element with the correct comment node', function () {
     const el = EmptyElement();
     const children = [...el.children()];
@@ -28,11 +40,19 @@ describe('Empty element tests', function () {
     el.unmount.should.be.a.Function();
   });
 
-  it('should fail to mount on a non-matching node', function () {
+  it('should tolerantly mount on non-matching nodes', function () {
     let node = document.createElement('div');
-    (() => EmptyElement.call(node)).should.throw();
+    document.body.appendChild(node);
+    let el = EmptyElement.call(node);
+    el.firstChild().nextSibling.should.equal(node);
+    el.unmount();
+    document.body.removeChild(node);
+    console.log(document.body.innerHTML);
+    (!(document.body.firstChild)).should.be.true();
     node = document.createComment('Hello');
-    (() => EmptyElement.call(node)).should.throw();
+    el = EmptyElement.call(node);
+    el.firstChild().should.equal(node);
+    node.textContent.should.equal('%%');
   });
 
   it('should render idempotently', function () {
@@ -40,7 +60,7 @@ describe('Empty element tests', function () {
     const clone = Object.assign({}, or);
     const el = EmptyElement.call(or);
     el.should.equal(or);
-    el.should.eql(clone);
+    Object.assign({}, el).should.eql(clone);
   });
 
   it('should unmount correctly', function () {
@@ -49,6 +69,6 @@ describe('Empty element tests', function () {
     [...document.body.childNodes].length.should.equal(1);
     el.unmount();
     [...document.body.childNodes].length.should.equal(0);
-    (el.firstChild().parentNode === null).should.be.true();
+    el.isMounted().should.be.false();
   });
 });

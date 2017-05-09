@@ -1,16 +1,34 @@
 /* eslint-disable no-use-before-define */
 
 import TheaText from './TheaText';
-import { insertAll } from './dom/domUtils';
-import { TRANSPARENT } from './constants';
+import { insertAll, insert, removeAll } from './dom/domUtils';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
 import emptyElement from './emptyElement';
-import flatten from './util/flatten';
-import forEach from './util/forEach';
 import isInBrowser from './dom/isInBrowser';
+import {
+  firstChild, lastChild, children as getChildren,
+  unmount as unmountRaw, toString, mountAll, isReady,
+  isMounted,
+} from './common/multiChildUtils';
+import addToUnmount from './common/unmountDaemon';
 
-const NODE_MAP = Symbol.for('node mape');
-const CHILD_COMPONENTS = Symbol.for('child components');
+/*
+ * This is the most complicated component. It performs
+ * a full child subtree diff, a la react.
+ *
+ * TOC:
+ *  - REGULARISING FUNCTIONS : utilities to make sure the list
+ *      of children is regular,
+ *  - PROTOYPE : the render prototype,
+ *  - MOUNT : deals with mounting children
+ *  - RECONCILE : the heart of the component: reconciles children
+ *  - RENDER FUNCTION : the actual renderer
+ */
 
+/*
+ * REGULARISING FUNCTIONS : utilities to make sure the list
+ *      of children is regular,
+ */
 const noNullChildren = t => (t !== null) && (t !== undefined) &&
     (t !== true) && (t !== false);
 
@@ -19,122 +37,377 @@ const normaliseChild = (t) => {
   return [TheaText, String(t)];
 };
 
-function render(attrs, context) {
-  const reconcileChild = function reconcileChild(oldMap, parentNode) {
-    return reconcileChildInt.bind(undefined, oldMap, parentNode);
-  };
-
-  // Normalise children
-  let newChildren = attrs;
-  if (!Array.isArray(attrs)) {
-    newChildren = [attrs];
-  } else if (attrs.length && typeof attrs[0] === 'function') {
-    newChildren = [attrs];
+const normaliseChildren = (children) => {
+  let result = children;
+  if (!Array.isArray(children)) {
+    result = [children];
+  } else if (typeof children[0] === 'function') {
+    result = [children];
   }
-  newChildren = newChildren
+  result = result
     .filter(noNullChildren)
     .map(normaliseChild);
-  if (newChildren.length === 0) {
-    newChildren = [[emptyElement]];
+  /* if (result.length === 0) {
+    result = [[emptyElement]];
+  }*/
+  return result;
+};
+
+/*
+ * PROTOTYPE : the render prototype,
+ */
+const prototype = {
+  firstChild,
+  lastChild,
+  children: getChildren,
+  render: TheaKeyedChildren, // eslint-disable-line
+  toString,
+  unmount: unmountRaw,
+  isReady,
+  isMounted,
+};
+
+// The special case when there are no children to reconcile
+/* eslint-disable no-param-reassign, no-plusplus, no-unused-expressions */
+function clearAllChildren(component, children) {
+  const last = component.lastChild();
+  const parent = last && last.parentNode;
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
+  const childComponents = mounted.childComponents;
+  let insertionPoint;
+
+  if (children.length) return false;
+  if (!oldChildren.length) return childComponents;
+  if (parent) {
+    const first = component.firstChild();
+    insertionPoint = last.nextSibling;
+    removeAll(first, last, parent);
+  }
+  addToUnmount(childComponents);
+
+  mounted.empty = mounted.empty || emptyElement();
+  mounted.childComponents = [mounted.empty];
+  insert(mounted.empty.firstChild(), insertionPoint, parent);
+  return mounted.childComponents;
+}
+
+// The special case when all children are to be added
+function addAllChildren(component, children, context) {
+  const front = component.firstChild();
+  const parent = front && front.parentNode;
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
+  if (oldChildren.length) return false;
+
+  mounted.childComponents = mountAll(undefined, children, context);
+  parent && insertAll(component.children(), front, parent); // eslint-disable-line
+  mounted.empty && parent && parent.removeChild(mounted.empty.firstChild());
+  return mounted.childComponents;
+}
+
+function reconcileComponents(component, oldNode, newNode, parent, context, unmountQueue) {
+  if (oldNode[0] !== newNode[0]) {
+    const newComponent = newNode[0].call(undefined, newNode[1], context);
+    if (parent) {
+      const first = component.firstChild();
+      insertAll(newComponent.children(), first, parent);
+      removeAll(first, component.lastChild(), parent);
+    }
+    unmountQueue.push(component);
+    return newComponent;
+  }
+  return newNode[0].call(component, newNode[1], context);
+}
+
+function reconcileAndMove(component, oldNode, newNode, parent,
+  context, insertionPoint, unmountQueue) {
+  if (newNode[0] !== oldNode[0]) {
+    const newComponent = newNode[0].call(undefined, newNode[1], context);
+    if (parent) {
+      insertAll(newComponent.children(), insertionPoint, parent);
+      removeAll(component.firstChild(), component.lastChild(), parent);
+    }
+    unmountQueue.push(component);
+    return newComponent;
+  }
+  if (!parent) {
+    return newNode[0].call(component, newNode[1], context);
   }
 
-  // Deal with the two special cases
-  if (!this) return mount(newChildren);
-  if (!this.unmount) return revive(this, newChildren);
+  const front = component.firstChild();
+  const back = component.lastChild().nextSibling;
+  while (front.nextSibling !== back) {
+    parent.removeChild(front.nextSibling);
+  }
+  parent.removeChild(front);
+  component = newNode[0].call(component, newNode[1], context);
+  insertAll(component.children(), insertionPoint, parent);
+  return component;
+}
 
-  // Reconcile children
-  const { childComponents, nodeMap } = newChildren.reduce(
-    reconcileChild(this.nodeMap(), this.firstChild() && this.firstChild().parentNode),
-      { childComponents: [], nodeMap: new Map(), front: this.firstChild() },
-  );
-  forEach(this.nodeMap().values(), x => x.unmount());
+// General reconciliation
+function reconcileGenerally(component, children, context) {
+  const mounted = component[MOUNTED];
+  const oldChildren = mounted.children;
+  const oldChildComponents = mounted.childComponents;
+  const childComponents = [];
+  const first = component.firstChild();
+  const parent = first && first.parentNode;
+  const unmountQueue = [];
 
-  return updateState.call(this, nodeMap, childComponents);
+  let oldFrontIndex = 0;
+  let newFrontIndex = 0;
+  let oldBackIndex = oldChildren.length - 1;
+  let newBackIndex = children.length - 1;
+  let oldKey;
+  let newKey;
+  const getKey = (array, index) => (array[index] && array[index][2]) || index;
 
-  function updateState(nodeMap, childComponents) { // eslint-disable-line
-    const result = this || {
-      nodeMap() { return this[NODE_MAP]; },
-      firstChild() { return this[CHILD_COMPONENTS][0].firstChild(); },
-      lastChild() { return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild(); },
-      children() { return flatten(this[CHILD_COMPONENTS].map(c => c.children())); },
-      toString() { return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), ''); },
-      unmount() {
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-      },
-      render,
+/* eslint-disable no-sequences, no-cond-assign */
+  while (oldFrontIndex <= oldBackIndex && newFrontIndex <= newBackIndex) {
+    while (
+      newKey = getKey(children, newFrontIndex),
+      oldKey = getKey(oldChildren, oldFrontIndex),
+      newFrontIndex <= newBackIndex &&
+      oldFrontIndex <= oldBackIndex &&
+      oldKey === newKey
+    ) {
+      childComponents[newFrontIndex] = reconcileComponents(
+        oldChildComponents[oldFrontIndex],
+        oldChildren[oldFrontIndex],
+        children[newFrontIndex],
+        parent,
+        context,
+        unmountQueue,
+      );
+
+      oldFrontIndex += 1;
+      newFrontIndex += 1;
+    }
+
+    while (
+      newKey = getKey(children, newBackIndex),
+      oldKey = getKey(oldChildren, oldBackIndex),
+      oldBackIndex >= oldFrontIndex &&
+      newBackIndex >= newFrontIndex &&
+      newKey === oldKey
+    ) {
+      childComponents[newBackIndex] = reconcileComponents(
+        oldChildComponents[oldBackIndex],
+        oldChildren[oldBackIndex],
+        children[newBackIndex],
+        parent,
+        context,
+        unmountQueue,
+      );
+      oldBackIndex -= 1;
+      newBackIndex -= 1;
+    }
+
+    if (oldFrontIndex > oldBackIndex || newFrontIndex > newBackIndex) break;
+
+    newKey = getKey(children, newFrontIndex);
+    oldKey = getKey(oldChildren, oldBackIndex);
+
+    if (newKey === oldKey) {
+      const childComponent = oldChildComponents[oldBackIndex];
+      const insertionPoint = parent && (childComponents[newFrontIndex - 1] ?
+        childComponents[newFrontIndex - 1].lastChild().nextSibling : parent.firstChild);
+      childComponents[newFrontIndex] = reconcileAndMove(
+        childComponent,
+        oldChildren[oldBackIndex],
+        children[newFrontIndex],
+        parent,
+        context,
+        insertionPoint,
+        unmountQueue,
+      );
+      oldBackIndex -= 1;
+      newFrontIndex += 1;
+    }
+
+    newKey = getKey(children, newBackIndex);
+    oldKey = getKey(oldChildren, oldFrontIndex);
+
+    if (newKey === oldKey && oldFrontIndex !== oldBackIndex && newFrontIndex !== newBackIndex) {
+      const childComponent = oldChildComponents[oldFrontIndex];
+      const insertionPoint = parent && childComponents[newBackIndex + 1] &&
+        childComponents[newBackIndex + 1].firstChild();
+      childComponents[newBackIndex] = reconcileAndMove(
+        childComponent,
+        oldChildren[oldFrontIndex],
+        children[newBackIndex],
+        parent,
+        context,
+        insertionPoint,
+        unmountQueue,
+      );
+      oldFrontIndex += 1;
+      newBackIndex -= 1;
+    }
+
+    newKey = getKey(children, newFrontIndex);
+    oldKey = getKey(oldChildren, oldFrontIndex);
+    if (newKey !== oldKey) break;
+  }
+  /* eslint-enable no-sequences, no-cond-assign */
+
+  // If we just have nodes to add or remove remaining
+  if (oldFrontIndex > oldBackIndex) {
+    if (newFrontIndex > newBackIndex) {
+      addToUnmount(unmountQueue);
+      return childComponents;
+    }
+    const insertionPoint = parent && childComponents[newFrontIndex - 1].lastChild().nextSibling;
+    let nodesToInsert = [];
+    while (newFrontIndex <= newBackIndex) {
+      const childNode = children[newFrontIndex];
+      const newComponent = childNode[0].call(undefined, childNode[1], context);
+      childComponents[newFrontIndex] = newComponent;
+      nodesToInsert = parent && nodesToInsert.concat(newComponent.children());
+      newFrontIndex += 1;
+    }
+    parent && insertAll(nodesToInsert, insertionPoint, parent);
+    addToUnmount(unmountQueue);
+    return childComponents;
+  }
+  if (newFrontIndex > newBackIndex) {
+    if (parent) {
+      const front = oldChildComponents[oldFrontIndex].firstChild();
+      const back = oldChildComponents[oldBackIndex].lastChild();
+      removeAll(front, back, parent);
+    }
+    Array.prototype.push.apply(unmountQueue, oldChildComponents.slice(oldFrontIndex, oldBackIndex));
+    addToUnmount(unmountQueue);
+    return childComponents;
+  }
+
+  // Now we're done with cheap gains
+  const oldMap = new Map();
+
+  for (let i = oldFrontIndex; i <= oldBackIndex; i++) {
+    oldKey = getKey(oldChildren, i);
+    oldMap.set(oldKey, i);
+  }
+
+  let front = parent &&
+    oldChildComponents[oldFrontIndex].firstChild();
+
+  for (let i = newFrontIndex; i <= newBackIndex; i++) {
+    const childNode = children[i];
+    newKey = getKey(children, i);
+    const oldChildIndex = oldMap.get(newKey);
+    if (oldChildIndex !== undefined) {
+      const childComponent = oldChildComponents[oldChildIndex];
+      if (childComponent.firstChild() !== front) {
+        childComponents[i] = reconcileAndMove(
+          childComponent,
+          oldChildren[oldChildIndex],
+          children[i],
+          parent,
+          context,
+          front,
+          unmountQueue,
+        );
+      } else {
+        childComponents[i] = reconcileComponents(
+          childComponent,
+          oldChildren[oldChildIndex],
+          children[i],
+          parent,
+          context,
+          unmountQueue,
+        );
+      }
+      oldMap.delete(newKey);
+    } else {
+      childComponents[i] = childNode[0].call(undefined, childNode[1], context);
+      parent && insertAll(childComponents[i].children(), front, parent);
+    }
+    front = childComponents[i].lastChild() && childComponents[i].lastChild().nextSibling;
+  }
+
+
+  const toDelete = [...oldMap.values()];
+  for (let i = 0; i < toDelete.length; i++) {
+    const childToDelete = oldChildComponents[toDelete[i]];
+    if (parent) {
+      front = childToDelete.firstChild();
+      const back = childToDelete.lastChild();
+      removeAll(front, back, parent);
+    }
+    unmountQueue.push(childToDelete);
+  }
+
+  addToUnmount(unmountQueue);
+  return childComponents;
+}
+
+/*
+ * RECONCILE: reconciling child lists. The heart of the component.
+ */
+function reconcileChildren(component, children, context) {
+  component[MOUNTED].childComponents =
+    clearAllChildren(component, children, context) ||
+    addAllChildren(component, children, context) ||
+    reconcileGenerally(component, children, context);
+}
+/* eslint-enable no-param-reassign */
+
+let activeTimeout;
+
+function retainActiveElement() {
+  if (activeTimeout || !isInBrowser) return;
+  const activeElement = document.activeElement;
+  activeTimeout = setTimeout(function resetFocus() { // eslint-disable-line
+    if (activeElement) {
+      activeElement.focus();
+    }
+    activeTimeout = undefined;
+  });
+}
+
+/*
+ * RENDER FUNCTION : the actual renderer
+ */
+
+function TheaKeyedChildren(attrs, context) {
+  // Was called newChildren
+  const children = normaliseChildren(attrs);
+
+  // Mount if necessary
+  if (!this || !this[MOUNTED]) {
+    const childrenToMount = children.length ?
+      children : [[emptyElement]];
+    const childComponents = mountAll(this, childrenToMount, context);
+    const result = Object.create(prototype);
+    if (process.env.node_env !== 'production') {
+      result[DEBUG] = {
+        attrs, context,
+      };
+    }
+    result[MOUNTED] = {
+      childComponents,
+      children,
+      empty: children.length === 0 && childComponents[0],
     };
-    result[NODE_MAP] = nodeMap;
-    result[CHILD_COMPONENTS] = childComponents;
     return result;
   }
 
-  function revive(node, children) {
-    function reviveChild(
-      { nodeMap, childComponents, firstNode }, [renderChild, childAttrs, index], count,
-    ) {
-      const childIndex = index === undefined ? count : index;
-      const newChild = renderChild.call(firstNode, childAttrs, context);
-      nodeMap.set(childIndex, newChild);
-      childComponents.push(newChild);
-      return {
-        nodeMap,
-        childComponents,
-        firstNode: newChild.lastChild().nextSibling,
-      };
-    }
-    const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
-      reviveChild, { nodeMap: new Map(), childComponents: [], firstNode: node });
 
-    return updateState(nodeMap, childComponents);
+  if (process.env.node_env !== 'production') {
+    this[DEBUG].attrs = attrs;
+    this[DEBUG].context = context;
   }
 
-  function mount(children) {
-    function mountChild({ nodeMap, childComponents }, [renderChild, childAttrs, index], count) {
-      const newChild = renderChild(childAttrs, context);
-      const childIndex = index === undefined ? count : index;
-      nodeMap.set(childIndex, newChild);
-      childComponents.push(newChild);
-      return { nodeMap, childComponents };
-    }
-    const { nodeMap, childComponents } = children.reduce( // eslint-disable-line
-      mountChild, { nodeMap: new Map(), childComponents: [] });
+  retainActiveElement();
+  reconcileChildren(this, children, context);
+  this[MOUNTED].children = children;
 
-    return updateState(nodeMap, childComponents);
-  }
-
-  function reconcileChildInt(oldMap, parentNode,
-    { childComponents, nodeMap, front }, [renderChild, attrs, index], count) { // eslint-disable-line
-    const childIndex = index === undefined ? count : index;
-    let prevChild = oldMap.get(childIndex);
-    let newChild;
-    let shouldMove;
-    const activeNode = isInBrowser && document.activeElement;
-
-    if (!prevChild || prevChild.render !== renderChild) {
-      newChild = renderChild(attrs, context);
-      if (prevChild) {
-        front = front === prevChild.firstChild() ? (prevChild.lastChild() && prevChild.lastChild().nextSibling) : front; // eslint-disable-line
-      }
-      prevChild && prevChild.unmount(); // eslint-disable-line
-      prevChild = undefined;
-      shouldMove = true;
-    } else {
-      shouldMove = prevChild.firstChild() !== front;
-      newChild = prevChild.render(attrs, context);
-    }
-    if (shouldMove && parentNode) {
-      insertAll(newChild.children(), front, parentNode);
-      activeNode && activeNode.focus(); // eslint-disable-line
-    }
-    nodeMap.set(childIndex, newChild);
-    oldMap.delete(childIndex);
-    childComponents.push(newChild);
-    front = newChild.lastChild() && newChild.lastChild().nextSibling; // eslint-disable-line
-
-    return { nodeMap, childComponents, front };
-  }
+  return this;
 }
 
-render[TRANSPARENT] = true;
+TheaKeyedChildren[TRANSPARENT] = true;
 
-export default render;
+export default TheaKeyedChildren;

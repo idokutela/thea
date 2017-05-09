@@ -1,15 +1,15 @@
 {
-  "name": "thea-doctype",
-  "version": "0.0.1",
-  "description": "A doctype component for Thea",
+  "name": "thea-mount",
+  "version": "0.0.0",
+  "description": "Mounts Thea components into DOM nodes",
   "main": "index.js",
   "author": "Alexander Kahle",
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.24.0",
     "babel-core": "^6.24.0",
+    "babel-plugin-dev-expression": "^0.2.1",
     "babel-preset-env": "^1.3.3",
-    "babel-preset-es2015": "^6.24.0",
     "eslint": "^3.18.0",
     "eslint-config-airbnb": "^14.1.0",
     "eslint-plugin-import": "^2.2.0",
@@ -18,15 +18,12 @@
     "jsdom": "^9.12.0",
     "mocha": "^3.2.0",
     "should": "^11.2.1",
-    "sinon": "^2.1.0"
+    "sinon": "^2.1.0",
+    "thea": "^0.0.12"
   },
   "scripts": {
     "clean": "rmtrash lib",
     "build": "yarn run clean && babel -d lib src",
-    "test-browser": "mocha --opts test-browser/mocha.opts",
-    "test-node": "mocha --opts test-node/mocha.opts",
-    "test": "yarn test-browser && yarn test-node",
-    "test:watch": "yarn test -- --watch",
-    "stupid": "babel index.js"
+    "test": "mocha --opts test/mocha.opts"
   }
 }

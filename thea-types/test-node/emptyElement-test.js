@@ -11,12 +11,12 @@ describe('Empty element node tests', function () {
     el.unmount.should.be.a.Function();
   });
 
-  it('should render idempotently', function () {
+  it('should render equivalently', function () {
     const or = EmptyElement();
     const clone = Object.assign({}, or);
     const el = EmptyElement.call(or);
     el.should.equal(or);
-    el.should.eql(clone);
+    Object.assign({}, el).should.eql(clone);
   });
 
   it('unmount should be a no-op', function () {
@@ -24,6 +24,6 @@ describe('Empty element node tests', function () {
     const clone = Object.assign({}, el);
 
     el.unmount();
-    el.should.eql(clone);
+    Object.assign({}, el).should.eql(clone);
   });
 });

@@ -1,32 +1,27 @@
-import { TRANSPARENT } from './constants';
-import flatten from './util/flatten';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
+import {
+  firstChild, lastChild,
+  children, toString, unmount, mountAll,
+  updateEach,
+  isReady, isMounted,
+} from './common/multiChildUtils';
 
-const CHILD_COMPONENTS = Symbol.for('child components');
-function render(attrs = [], context) {
-  function renderComponent(childComponents) {
-    const retval = this || {
-      firstChild() {
-        return this[CHILD_COMPONENTS][0].firstChild();
-      },
-      lastChild() {
-        return this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
-      },
-      children() {
-        return flatten(this[CHILD_COMPONENTS].map(c => c.children()));
-      },
-      toString() {
-        return this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
-      },
-      unmount() {
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-      },
-      childComponents() { return this[CHILD_COMPONENTS]; },
-      render,
-    };
-    retval[CHILD_COMPONENTS] = childComponents;
-    return retval;
-  }
+const prototype = {
+  firstChild,
+  lastChild,
+  children,
+  toString,
+  render: TheaView, // eslint-disable-line
+  unmount,
+  isReady,
+  isMounted,
+};
 
+/**
+ * The basic fixed-child view. A transparent view that assumes that
+ * it always has the same child component structure.
+ */
+function TheaView(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new TypeError('TheaView: Expected an array of children.');
@@ -39,38 +34,28 @@ function render(attrs = [], context) {
     }
   }
 
-  let childComponents;
-
-  if (!this) {
-    childComponents = attrs.map(([r, a]) => r(a, context));
-    return renderComponent(childComponents);
+  if (!this || !this[MOUNTED]) { // first render
+    const retval = Object.create(prototype);
+    retval[MOUNTED] = { childComponents: mountAll(this, attrs, context) };
+    if (process.env.node_env !== 'production') {
+      retval[DEBUG] = { attrs, context };
+    }
+    return retval;
   }
-
-  if (!this.unmount) {
-    childComponents = attrs.reduce((c, [r, a]) => {
-      const next = c.length ? c[c.length - 1].lastChild().nextSibling : this;
-      c.push(r.call(next, a, context));
-      return c;
-    }, []);
-    return renderComponent(childComponents);
-  }
-
-  const currentComponents = this.childComponents();
 
   if (process.env.NODE_ENV !== 'production') {
-    if (attrs.length !== currentComponents.length) {
+    if (attrs.length !== this[MOUNTED].childComponents.length) {
       throw new Error('The child types do not match up. Views must have a consistent structure.');
     }
+    // Question: should I also check the actual child structure?
+    this[DEBUG] = { attrs, context };
   }
 
-  function updateChild([r, a], i) {
-    return r.call(currentComponents[i], a, context);
-  }
+  updateEach(this, attrs, context);
 
-  childComponents = attrs.map(updateChild);
-  return renderComponent.call(this, childComponents);
+  return this;
 }
 
-render[TRANSPARENT] = true;
+TheaView[TRANSPARENT] = true;
 
-export default render;
+export default TheaView;

@@ -1,4 +1,5 @@
 import DOM from '../src/TheaDOM';
+import '../src/DOMKnowledge';
 
 describe('TheaDOM tests', function () {
   it('should create a DOM renderer', function () {
@@ -22,5 +23,19 @@ describe('TheaDOM tests', function () {
     };
     const component = div(attrs);
     component.toString().should.equal('<div class="Bah&lt;"contenteditable><br/></div>');
+  });
+
+  it('should make an stringigy a script tag', function () {
+    const script = DOM('script');
+    const attrs = { type: 'text/myscript', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = script(attrs);
+    component.toString().should.equal('<script type="text/myscript">hello & bye<= 12 + 3\'"></script>');
+  });
+
+  it('should make an unescaped style tag', function () {
+    const style = DOM('style');
+    const attrs = { type: 'text/mystyle', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = style(attrs);
+    component.toString().should.equal('<style type="text/mystyle">hello & bye<= 12 + 3\'"></style>');
   });
 });

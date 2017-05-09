@@ -1,4 +1,6 @@
 import DOM from '../src/TheaDOM';
+import { setUnmountListener } from '../src/common/unmountDaemon';
+import { MOUNTED } from '../src/constants';
 
 describe('TheaDOM tests', function () {
   let components;
@@ -94,12 +96,14 @@ describe('TheaDOM tests', function () {
     const attrs = {
       class: 'Bah',
       CONTENTEDITABLE: '',
+      autofocus: '',
       children: [[renderChildP, 'fizz']],
     };
     const component = rdiv(attrs);
     const newAttrs = {
       class: 'Bee bah',
       tabindex: '-1',
+      autofocus: undefined,
       children: [[renderChildP, 'bang']],
     };
     component.render(newAttrs, { a: 'fry' });
@@ -113,6 +117,7 @@ describe('TheaDOM tests', function () {
     component.firstChild().getAttribute('class').should.eql('Bee bah');
     component.firstChild().tabIndex.should.equal(-1);
     (component.firstChild().getAttribute('contenteditable') === null).should.be.true();
+    (component.firstChild().getAttribute('autofocus') === null).should.be.true();
     [...component.firstChild().attributes].length.should.equal(2);
   });
 
@@ -243,8 +248,12 @@ describe('TheaDOM tests', function () {
     const component = div(attrs);
     const child = node;
     component.unmount();
-    child.click();
-    clicked.should.be.false();
+    return new Promise(res => setTimeout(() => {
+      (!(child.parentNode)).should.be.true();
+      child.click();
+      clicked.should.be.false();
+      res();
+    }));
   });
 
   it('should unmount itself from its parent', function () {
@@ -295,7 +304,7 @@ describe('TheaDOM tests', function () {
     focussed.should.be.true();
   });
 
-  it('shoud update capturers', function () {
+  it('shoud update capturers when a capturer is added late', function () {
     const p = DOM('p');
     const input = DOM('input');
     let focussed = false;
@@ -303,15 +312,15 @@ describe('TheaDOM tests', function () {
     const iattrs = { ref: el => (node = el) };
     const pattrs = { children: [[input, iattrs]] };
     const parent = p(pattrs).firstChild();
-    pattrs.capturefocus = () => (focussed = true);
     node.focus();
     focussed.should.be.false();
+    pattrs.capturefocus = () => (focussed = true);
     p.call(parent, pattrs);
     node.focus();
     focussed.should.be.true();
   });
 
-  it('should delete captured event listeners on unmount', function () {
+  it('should update capturers when a capturer is changed', function () {
     const p = DOM('p');
     const input = DOM('input');
     let node;
@@ -328,5 +337,104 @@ describe('TheaDOM tests', function () {
     node.focus();
     focussed1.should.be.false();
     focussed2.should.be.true();
+  });
+
+  it('should update capturers when a capturer is removed', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let node;
+    let focussed = false;
+    const listener = e => e.target && (focussed = !focussed);
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: listener };
+
+    const component = p(pattrs);
+    delete pattrs.capturefocus;
+    component.render(pattrs);
+    node.focus();
+    focussed.should.be.false();
+  });
+
+  it('should remove capturers on unmount', function () {
+    const p = DOM('p');
+    const input = DOM('input');
+    let node;
+    let focussed = false;
+    const listener = e => e.target && (focussed = !focussed);
+    const iattrs = { ref: el => (node = el) };
+    const pattrs = { children: [[input, iattrs]], capturefocus: listener };
+    const component = p(pattrs);
+    component.unmount();
+    return new Promise(res => setTimeout(() => {
+      node.focus();
+      focussed.should.be.false();
+      res();
+    }));
+  });
+
+  it('should make an unescaped script tag', function () {
+    const script = DOM('script');
+    const attrs = { type: 'text/myscript', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = script(attrs);
+    const node = component.firstChild();
+    node.nodeType.should.equal(window.Node.ELEMENT_NODE);
+    node.tagName.toLowerCase().should.equal('script');
+    node.getAttribute('type').should.equal('text/myscript');
+    node.textContent.should.equal('hello & bye<= 12 + 3\'">');
+    component.attrs.should.eql(attrs);
+    const newAttrs = { type: 'text/ms', children: ['a'] };
+    component.render(newAttrs);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+
+    const componentCopy = script.call(node, newAttrs);
+    componentCopy.should.not.equal(component);
+    componentCopy.firstChild().should.equal(node);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+  });
+
+  it('should make an unescaped style tag', function () {
+    const style = DOM('style');
+    const attrs = { type: 'text/mystyle', children: ['hello & bye', '<= 12 + 3', '\'">'] };
+    const component = style(attrs);
+    const node = component.firstChild();
+    node.nodeType.should.equal(window.Node.ELEMENT_NODE);
+    node.tagName.toLowerCase().should.equal('style');
+    node.getAttribute('type').should.equal('text/mystyle');
+    node.textContent.should.equal('hello & bye<= 12 + 3\'">');
+    component.attrs.should.eql(attrs);
+    const newAttrs = { type: 'text/ms', children: ['a'] };
+    component.render(newAttrs);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+
+    const componentCopy = style.call(node, newAttrs);
+    componentCopy.should.not.equal(component);
+    componentCopy.firstChild().should.equal(node);
+    node.getAttribute('type').should.equal('text/ms');
+    node.textContent.should.equal('a');
+  });
+
+  it('should eventually unmount fully', function () {
+    const p = DOM('p');
+    const div = DOM('div');
+    const attrs = { children: [[p], [p]] };
+    const component = div(attrs);
+    const childComponents = component[MOUNTED].childComponents;
+    document.body.appendChild(component.firstChild());
+    let resolvePromise;
+    const afterUnmountPromise = new Promise((res) => {
+      resolvePromise = res;
+    });
+    setUnmountListener(() => {
+      childComponents.length.should.equal(2);
+      childComponents[0].isMounted().should.be.false();
+      childComponents[1].isMounted().should.be.false();
+      component.isMounted().should.be.false();
+      setTimeout(resolvePromise, 10);
+    });
+    component.unmount();
+    return afterUnmountPromise;
   });
 });

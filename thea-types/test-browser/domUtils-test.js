@@ -1,6 +1,12 @@
 import { insert, insertAll, remove } from '../src/dom/domUtils';
 
 describe('Dom utils test', function () {
+  afterEach(function () {
+    while (document.body.firstChild) {
+      document.body.removeChild(document.body.firstChild);
+    }
+  });
+
   it('should insert correctly', function () {
     const n = document.createElement('div');
     const m = document.createElement('p');
@@ -16,12 +22,12 @@ describe('Dom utils test', function () {
     const n = document.createElement('div');
     const m = document.createElement('p');
     const q = document.createElement('q');
-    const iter = [m, n, q][Symbol.iterator]();
+    const iter = [m, n, q];
     insertAll(iter, undefined, document.body);
     [...document.body.childNodes].should.eql([m, n, q]);
     const a = document.createTextNode('Hello');
     const b = document.createComment('World');
-    insertAll([a, b][Symbol.iterator](), n);
+    insertAll([a, b], n);
     [...document.body.childNodes].should.eql([m, a, b, n, q]);
     [...document.body.childNodes].forEach(x => document.body.removeChild(x));
   });

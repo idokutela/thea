@@ -1,10 +1,9 @@
 import escape from 'escape-html';
-import voidElements from './voidElements';
-import { setToString, getCapturedEventName, getBubbledEventName } from '../TheaDOM';
-import reduce from '../util/reduce';
-import camelToDash from './camelToDash';
+import voidElements from './dom/voidElements';
+import { setToString, getCapturedEventName, getBubbledEventName } from './common/DOMNodeUtils';
+import camelToDash from './dom/camelToDash';
 
-export { default as voidElements } from './voidElements';
+export { default as voidElements } from './dom/voidElements';
 export const rawTextElements = new Set(['script', 'style']);
 export const escapableRawTextElements = new Set(['textarea', 'title']);
 
@@ -19,8 +18,18 @@ export const booleanAttributes = new Set(['allowfullscreen',
   'spellcheck', 'translate', 'truespeed', 'typemustmatch', 'visible']);
 
 const concatStyleItem = (r, [k, v]) => (r ? `${r};${camelToDash(k)}:${escape(String(v))}` : `${camelToDash(k)}:${escape(String(v))}`);
-const styleToString = styles => (styles.size ?
-  `style="${reduce(styles.entries(), concatStyleItem, '')}"` : '');
+const styleToString = (styles) => {
+  if (!styles) return '';
+  if (typeof styles === 'string') return styles;
+
+  const keys = Object.keys(styles);
+  if (!keys.length) return '';
+  let result = '';
+  for (let i = 0; i < keys.length; i++) { // eslint-disable-line
+    result = concatStyleItem(result, [keys[i], styles[keys[i]]]);
+  }
+  return `style="${result}"`;
+};
 
 const concatS = (s, t) => ((s.length && s[s.length - 1] !== '"') ? `${s} ${t}` : s + t);
 
@@ -33,21 +42,29 @@ function concatAttrString(r, [k, v]) {
   if (v === '') return concatS(r, k);
   return concatS(r, `${k}="${escape(String(v))}"`);
 }
-const attrsToString = attrs => reduce(attrs.entries(), concatAttrString, '');
+const attrsToString = (attrs = {}) => {
+  const keys = Object.keys(attrs);
+  if (!keys.length) return '';
+  let result = '';
+  for (let i = 0; i < keys.length; i++) { // eslint-disable-line
+    result = concatAttrString(result, [keys[i], attrs[keys[i]]]);
+  }
+  return result;
+};
 
-export function toStringNoDOM(tagName, attrMap = new Map(), styleMap = new Map(), childString = '') {
-  const styles = styleToString(styleMap);
-  const attrs = styles ? concatS(attrsToString(attrMap), styles) : attrsToString(attrMap);
+export function toStringNoDOM(tagName, attrs, styles, childString = '') {
+  const styleString = styleToString(styles);
+  const attrsString = styles ? concatS(attrsToString(attrs), styleString) : attrsToString(attrs);
   if (voidElements.has(tagName)) {
     if (process.env.NODE_ENV !== 'production') {
       if (childString.length) {
         throw new Error(`The tag ${tagName} may not have children.`);
       }
     }
-    return attrs ? `<${tagName} ${attrs}/>` : `<${tagName}/>`;
+    return attrsString ? `<${tagName} ${attrsString}/>` : `<${tagName}/>`;
   }
-  return attrs ?
-    `<${tagName} ${attrs}>${childString}</${tagName}>` :
+  return attrsString ?
+    `<${tagName} ${attrsString}>${childString}</${tagName}>` :
     `<${tagName}>${childString}</${tagName}>`;
 }
 

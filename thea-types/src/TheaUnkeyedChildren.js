@@ -1,117 +1,108 @@
-import { TRANSPARENT } from './constants';
+import { TRANSPARENT, MOUNTED, DEBUG } from './constants';
+import {
+  firstChild, lastChild, isMounted,
+  children, toString, unmount, mountAll, isReady,
+} from './common/multiChildUtils';
 import emptyElement from './emptyElement';
-import flatten from './util/flatten';
-import { insertAll } from './dom/domUtils';
+import { insert, insertAll, removeAll } from './dom/domUtils';
+import addToUnmount from './common/unmountDaemon';
 
-const CHILD_COMPONENTS = Symbol('child components');
-const EMPTY = Symbol('empty');
+const prototype = {
+  firstChild,
+  lastChild,
+  children,
+  toString,
+  unmount,
+  render: TheaUnkeyedChildren, // eslint-disable-line
+  isReady,
+  isMounted,
+};
 
-function render(attrs, context) {
+const min = (a, b) => (a < b ? a : b);
+
+/* eslint-disable no-plusplus */
+function TheaUnkeyedChildren(attrs = [], context) {
   if (process.env.NODE_ENV !== 'production') {
     if (!Array.isArray(attrs)) {
       throw new Error('TheaUnkeyedChildren: Expected an array of children.');
     }
   }
 
-  function updateState(childComponents, empty) {
-    const result = this || {
-      childComponents() { return this[CHILD_COMPONENTS]; },
-      empty() { return this[EMPTY]; },
-      firstChild() {
-        return this[EMPTY] ? this[EMPTY].firstChild() :
-          this[CHILD_COMPONENTS][0].firstChild();
-      },
-      lastChild() {
-        return this[EMPTY] ? this[EMPTY].lastChild() :
-          this[CHILD_COMPONENTS][this[CHILD_COMPONENTS].length - 1].lastChild();
-      },
-      children() {
-        return this[EMPTY] ? this[EMPTY].children() :
-          flatten(this[CHILD_COMPONENTS].map(c => c.children()));
-      },
-      toString() {
-        return this[EMPTY] ? this[EMPTY].toString() :
-          this[CHILD_COMPONENTS].reduce((r, c) => r + c.toString(), '');
-      },
-      unmount() {
-        if (this[EMPTY]) {
-          return this[EMPTY].unmount();
-        }
-        this[CHILD_COMPONENTS].forEach(c => c.unmount());
-        return undefined;
-      },
-      render,
+  if (!this || !this[MOUNTED]) {
+    const result = Object.create(prototype);
+    if (process.env.node_env !== 'production') {
+      result[DEBUG] = {
+        attrs,
+        context,
+      };
+    }
+    if (attrs.length) {
+      result[MOUNTED] = {
+        childComponents: mountAll(this, attrs, context),
+        empty: emptyElement(),
+      };
+      return result;
+    }
+    const empty = emptyElement.call(this);
+    result[MOUNTED] = {
+      childComponents: [empty],
+      empty,
     };
-
-    result[CHILD_COMPONENTS] = childComponents;
-    result[EMPTY] = empty;
     return result;
   }
 
-  let childComponents;
-  if (!this) {
-    if (attrs.length) {
-      childComponents = attrs.map(([r, a]) => r(a, context));
-      return updateState(childComponents);
-    }
-    return updateState([], emptyElement());
+  if (process.env.node_env !== 'production') {
+    this.attrs = attrs;
+    this.context = context;
   }
 
-  if (!this.unmount) {
-    if (attrs.length) {
-      childComponents = attrs.reduce((c, [r, a]) => {
-        const next = c.length ? c[c.length - 1].nextSibling : this;
-        c.push(r.call(next, a, context));
-        return c;
-      }, []);
-      return updateState(childComponents);
-    }
-    return updateState([], emptyElement.call(this));
-  }
+  const last = this.lastChild();
+  const parent = last && last.parentNode;
 
-  if (!attrs.length === !this.empty()) {
-    const result = render(attrs, context);
-    insertAll(result.children(), this.firstChild());
-    this.unmount();
-    return updateState.call(this, result.childComponents(), result.empty());
-  }
-  if (this.empty()) {
+  const mounted = this[MOUNTED];
+  if (mounted.childComponents[0] === mounted.empty) { // if currently empty
+    if (!attrs.length) return this;
+    mounted.childComponents = mountAll(undefined, attrs, context);
+    parent && insertAll(this.children(), mounted.empty.firstChild(), parent); // eslint-disable-line
+    parent && parent.removeChild(mounted.empty.firstChild()); // eslint-disable-line
     return this;
   }
 
-  const currentChildren = this.childComponents();
-  let toUpdate;
-
-  function updateChild([r, a], i) {
-    const child = toUpdate[i];
-    if (process.env.NODE_ENV !== 'production') {
-      if (child.render !== r) {
-        throw new Error('The child types functions differ in update!');
-      }
+  if (!attrs.length) {
+    if (parent) {
+      const next = last.nextSibling;
+      removeAll(this.firstChild(), last, parent);
+      insert(mounted.empty.firstChild(), next, parent);
     }
-    return r.call(child, a, context);
+    addToUnmount(mounted.childComponents);
+    mounted.childComponents = [mounted.empty];
+    return this;
   }
 
-  if (attrs.length <= currentChildren.length) {
-    toUpdate = currentChildren.slice(0, attrs.length);
-    const toRemove = currentChildren.slice(attrs.length);
-    childComponents = attrs.map(updateChild);
-    toRemove.forEach(c => c.unmount());
-    return updateState.call(this, childComponents);
+  const diff = attrs.length - mounted.childComponents.length;
+  const toUpdate = min(attrs.length, mounted.childComponents.length);
+  for (let i = 0; i < toUpdate; i++) {
+    attrs[i][0].call(mounted.childComponents[i], attrs[i][1], context);
+  }
+  if (diff < 0) { // remove
+    if (parent) {
+      const first = mounted.childComponents[toUpdate].firstChild();
+      removeAll(first, last, parent);
+    }
+    addToUnmount(mounted.childComponents.splice(toUpdate, -diff));
+  } else if (diff > 0) {
+    const toAdd = [];
+    const end = parent && this.lastChild().nextSibling;
+    for (let i = toUpdate; i < attrs.length; i++) {
+      mounted.childComponents[i] = attrs[i][0].call(undefined, attrs[i][1], context);
+      parent && Array.prototype.push.apply(toAdd, mounted.childComponents[i].children()); // eslint-disable-line
+    }
+    parent && insertAll(toAdd, end, parent); // eslint-disable-line
   }
 
-  toUpdate = currentChildren;
-  const updateingAttrs = attrs.slice(0, currentChildren.length);
-  const toAdd = attrs.slice(currentChildren.length);
-  const nextSibling = this.lastChild() && this.lastChild().nextSibling;
-  const parent = this.lastChild() && this.lastChild().parentNode;
-  childComponents = updateingAttrs.map(updateChild);
-  const newComponents = toAdd.map(([r, a]) => r(a, context));
-  const newNodes = newComponents.reduce((r, x) => r.concat([...x.children()]), []);
-  parent && insertAll(newNodes, nextSibling, parent); // eslint-disable-line
-  return updateState.call(this, childComponents.concat(newComponents));
+  return this;
 }
 
-render[TRANSPARENT] = true;
+TheaUnkeyedChildren[TRANSPARENT] = true;
 
-export default render;
+export default TheaUnkeyedChildren;
